@@ -1,0 +1,85 @@
+# config/player_config.py
+#
+# ╔══════════════════════════════════════════════════════╗
+# ║  수치 튜닝은 이 파일에서만 하면 됩니다.               ║
+# ╚══════════════════════════════════════════════════════╝
+
+
+class MovementConfig:
+    """수평 이동 관련 수치"""
+
+    # 가속도 (pixels/sec²)
+    GROUND_ACCEL: float = 5000.0
+    AIR_ACCEL: float = 2800.0
+
+    # 감속 (pixels/sec²)
+    GROUND_FRICTION: float = 4500.0
+    AIR_DRAG: float = 150.0
+
+    # 최대 속도 (pixels/sec)
+    MAX_RUN_SPEED: float = 600.0
+    MAX_AIR_SPEED: float = 600.0
+
+
+class JumpConfig:
+    """점프 관련 수치"""
+
+    # 점프력 (pixels/sec, 위 방향이 음수)
+    JUMP_SPEED: float = 1200.0
+
+    # 다중 점프 횟수 (지상 점프 제외, 순수 공중 추가 점프 수)
+    MAX_AIR_JUMPS: int = 2
+
+    # 스타트업 딜레이 (sec)
+    JUMP_STARTUP_TIME: float = 0.04
+
+    # 착지 후 행동 불능 시간 (sec)
+    LANDING_RECOVERY_TIME: float = 0.06
+
+    # 점프 직후 fast fall을 아주 잠깐 막는 시간
+    FAST_FALL_LOCK_TIME: float = 0.045
+
+
+class GravityConfig:
+    """중력 / 낙하 관련 수치"""
+
+    # 기본 중력 가속도 (pixels/sec²)
+    GRAVITY: float = 3600.0
+
+    # 일반 낙하 최대 속도 (pixels/sec)
+    MAX_FALL_SPEED: float = 1100.0
+
+    # 패스트폴
+    # 아래 입력 시 추가 중력을 더 크게 주되,
+    # 종단속도(최대 낙하속도)는 별도로 제한한다.
+    FAST_FALL_ACCEL_BONUS: float = 3600.0
+    FAST_FALL_TERMINAL_SPEED: float = 1650.0
+
+
+class DashConfig:
+    """대시 관련 수치"""
+
+    # 대시 지속 시간
+    DASH_TIME: float = 0.12
+
+    # 대시 속도
+    DASH_SPEED: float = 1000.0
+    SPRINT_SPEED: float = 800.0
+
+    # 연속 지상 dash 재사용 제한
+    GROUND_CHAIN_REUSE: float = 25 / 60
+
+    # 공중을 거친 후 다시 dash할 때 재사용 제한
+    AIR_RESET_REUSE: float = 0.0
+
+    # 땅 근처 snap dash 허용 거리
+    GROUND_SNAP_DIST: float = 50.0
+
+class PlayerConfig:
+    """플레이어 물리 크기 등 기본 설정"""
+
+    WIDTH: int = 48
+    HEIGHT: int = 64
+
+    SPAWN_X: float = 400.0
+    SPAWN_Y: float = 200.0
