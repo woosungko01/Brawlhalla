@@ -52,8 +52,8 @@ class GravityConfig:
     # 패스트폴
     # 아래 입력 시 추가 중력을 더 크게 주되,
     # 종단속도(최대 낙하속도)는 별도로 제한한다.
-    FAST_FALL_ACCEL_BONUS: float = 3600.0
-    FAST_FALL_TERMINAL_SPEED: float = 1650.0
+    FAST_FALL_ACCEL_BONUS: float = 6000.0
+    FAST_FALL_TERMINAL_SPEED: float = 1300.0
 
 
 class DashConfig:
