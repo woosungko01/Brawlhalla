@@ -37,6 +37,7 @@ from systems.state_machine import update_move_state
 
 from utils.debug_hud import draw_debug_hud
 
+font = pygame.font.SysFont("monospace", 13)
 
 # ── 상수 ──────────────────────────────────────────────────────────────────
 
@@ -208,7 +209,6 @@ def draw(
     pygame.draw.circle(surface, (255, 255, 255), (eye_x, eye_y), 5)
 
     # 상태 텍스트
-    font = pygame.font.SysFont("monospace", 13)
     state_surf = font.render(player.move_state, True, (200, 200, 200))
     surface.blit(
         state_surf,
