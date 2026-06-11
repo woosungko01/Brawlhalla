@@ -122,8 +122,17 @@ class TrainingMatch:
             try_start_attack(fighter)
 
         if fighter.input.dodge_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:
-            if not fighter.is_grounded and fighter.near_ground:
+            # snap dash 조건:
+            # - 공중
+            # - fast fall 중
+            # - 지면 근처
+            if (
+                    not fighter.is_grounded
+                    and fighter.fast_falling
+                    and fighter.near_ground
+            ):
                 snap_to_ground(fighter, self.stage.platforms)
+
             try_request_dash(fighter)
 
         if fighter.input.jump_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:

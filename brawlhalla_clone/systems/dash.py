@@ -12,6 +12,10 @@ def try_request_dash(fighter: Fighter) -> None:
     """
     dash 입력이 들어온 그 순간에만 판정.
     가능하면 즉시 dash 시작, 불가능하면 버림.
+
+    정책:
+    - 기본 dash는 지상에서만 가능
+    - 공중 snap dash는 상위 로직에서 snap_to_ground() 성공 후 다시 이 함수를 호출해서 처리
     """
     move_x = fighter.input.move_x
 
@@ -21,7 +25,8 @@ def try_request_dash(fighter: Fighter) -> None:
     if fighter.is_dashing:
         return
 
-    if not fighter.is_grounded and not fighter.near_ground:
+    # 기본적으로 지상에서만 dash 허용
+    if not fighter.is_grounded:
         return
 
     if fighter.dash_reuse_timer > 0.0 and not fighter.left_ground_since_dash:
