@@ -13,71 +13,65 @@ class Player:
     def __init__(self) -> None:
         cfg = PlayerConfig()
 
-        # 위치 / 속도
         self.pos = Vec2(cfg.SPAWN_X, cfg.SPAWN_Y)
         self.vel = Vec2(0.0, 0.0)
 
-        # 크기
-        self.width: int = cfg.WIDTH
-        self.height: int = cfg.HEIGHT
+        self.width = cfg.WIDTH
+        self.height = cfg.HEIGHT
 
-        # 방향
-        self.facing: int = 1
+        self.facing = 1
 
-        # 접지 / 벽 / 천장
-        self.is_grounded: bool = False
-        self.was_grounded: bool = False
-        self.touching_wall: bool = False
-        self.touching_ceiling: bool = False
-        self.near_ground: bool = False
+        self.is_grounded = False
+        self.was_grounded = False
+        self.touching_wall = False
+        self.touching_ceiling = False
+        self.near_ground = False
 
-        # 이동 플래그
-        self.fast_falling: bool = False
+        self.fast_falling = False
 
-        # 이동 상태
-        self.move_state: str = "idle"
+        self.move_state = "idle"
 
-        # 점프
         self.pending_jump_kind: str | None = None
 
-        # 타이머
-        self.jump_startup_timer: float = 0.0
-        self.landing_recovery_timer: float = 0.0
-        self.fast_fall_lock_timer: float = 0.0
+        self.jump_startup_timer = 0.0
+        self.landing_recovery_timer = 0.0
+        self.fast_fall_lock_timer = 0.0
 
-        # 대시
-        self.is_dashing: bool = False
-        self.dash_timer: float = 0.0
-        self.dash_dir: int = 0
-        self.dash_reuse_timer: float = 0.0
-        self.left_ground_since_dash: bool = True
+        self.is_dashing = False
+        self.dash_timer = 0.0
+        self.dash_dir = 0
+        self.dash_reuse_timer = 0.0
+        self.left_ground_since_dash = True
 
-        # 공중 자원
         self.air = AirResources()
 
-        # 전투 상태
-        self.is_attacking: bool = False
+        # 캐릭터 종류: "brawler" | "swordsman"
+        self.character_id = "brawler"
+
+        # 전투
+        self.is_attacking = False
         self.attack_name: str | None = None
-        self.attack_timer: float = 0.0
-        self.attack_total_time: float = 0.0
-        self.attack_has_hit: bool = False
+        self.attack_timer = 0.0
+        self.attack_total_time = 0.0
+        self.attack_has_hit = False
+        self.attack_extra_fired = False
+
+        # 카운터 성공 효과용
+        self.stun_timer = 0.0
 
         # 궁극기
-        self.ultimate_timer: float = 0.0
-        self.ultimate_ready: bool = True   # 실험용으로 항상 가능하게 시작
+        self.ultimate_timer = 0.0
+        self.ultimate_ready = True   # 실험용
 
-        # 설정
         self.move_cfg = MovementConfig()
         self.jump_cfg = JumpConfig()
         self.gravity_cfg = GravityConfig()
         self.dash_cfg = DashConfig()
 
-        # 확장 슬롯
-        self.dodge_cooldown_timer: float = 0.0
-        self.invuln_timer: float = 0.0
-        self.can_attack: bool = True
+        self.dodge_cooldown_timer = 0.0
+        self.invuln_timer = 0.0
+        self.can_attack = True
 
-        # 입력
         self.input = InputState()
 
     @property

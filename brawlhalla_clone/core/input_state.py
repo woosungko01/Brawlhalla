@@ -1,13 +1,6 @@
 # core/input_state.py
 
 class InputState:
-    """
-    한 프레임의 입력 상태.
-
-    *_pressed  : 이번 프레임에 처음 눌린 경우만 True
-    *_released : 이번 프레임에 떼어진 경우만 True
-    """
-
     __slots__ = (
         "left", "right", "up", "down",
         "jump", "jump_pressed", "jump_released",
@@ -17,23 +10,23 @@ class InputState:
     )
 
     def __init__(self) -> None:
-        self.left: bool = False
-        self.right: bool = False
-        self.up: bool = False
-        self.down: bool = False
+        self.left = False
+        self.right = False
+        self.up = False
+        self.down = False
 
-        self.jump: bool = False
-        self.jump_pressed: bool = False
-        self.jump_released: bool = False
+        self.jump = False
+        self.jump_pressed = False
+        self.jump_released = False
 
-        self.dodge: bool = False
-        self.dodge_pressed: bool = False
+        self.dodge = False
+        self.dodge_pressed = False
 
-        self.attack: bool = False
-        self.attack_pressed: bool = False
+        self.attack = False
+        self.attack_pressed = False
 
-        self.ultimate: bool = False
-        self.ultimate_pressed: bool = False
+        self.ultimate = False
+        self.ultimate_pressed = False
 
     def reset_frame_events(self) -> None:
         self.jump_pressed = False

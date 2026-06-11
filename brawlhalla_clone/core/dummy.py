@@ -11,7 +11,7 @@ class Dummy:
         self.width = 52
         self.height = 72
 
-        self.hitstun_timer: float = 0.0
+        self.hitstun_timer = 0.0
 
     @property
     def rect_x(self) -> float:

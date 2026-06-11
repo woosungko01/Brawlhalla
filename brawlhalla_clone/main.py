@@ -40,7 +40,7 @@ SCREEN_W, SCREEN_H = 1280, 720
 WORLD_W, WORLD_H = 3200, 1800
 
 FPS = 60
-TITLE = "Brawlhalla 이동 + 공격 프로토타입"
+TITLE = "Brawlhalla 이동 + 2캐릭터 공격 프로토타입"
 
 BG_COLOR = (30, 30, 45)
 PLAYER_COLOR = (100, 180, 255)
@@ -86,7 +86,6 @@ def tick_timers(player: Player, dt: float) -> None:
 
 def read_input(inp: InputState, events: list[pygame.event.Event]) -> None:
     inp.reset_frame_events()
-
     keys = pygame.key.get_pressed()
 
     inp.left = keys[pygame.K_a] or keys[pygame.K_LEFT]
@@ -131,12 +130,12 @@ def update_player(player: Player, dummy: Dummy, dt: float, platforms: list[Platf
     if player.input.attack_pressed:
         try_start_attack(player)
 
-    if player.input.dodge_pressed and not player.is_attacking:
+    if player.input.dodge_pressed and not player.is_attacking and player.stun_timer <= 0.0:
         if not player.is_grounded and player.near_ground:
             snap_to_ground(player, platforms)
         try_request_dash(player)
 
-    if player.input.jump_pressed and not player.is_attacking:
+    if player.input.jump_pressed and not player.is_attacking and player.stun_timer <= 0.0:
         try_request_jump(player)
 
     execute_pending_jump(player)
@@ -184,7 +183,7 @@ def draw(
         pygame.draw.rect(surface, PLATFORM_COLOR, rect)
         pygame.draw.rect(surface, (60, 160, 90), rect, 2)
 
-    # dummy
+    # 더미
     drect = pygame.Rect(
         int(dummy.rect_x - camera.x),
         int(dummy.rect_y - camera.y),
@@ -194,7 +193,7 @@ def draw(
     pygame.draw.rect(surface, DUMMY_COLOR, drect)
     pygame.draw.rect(surface, (180, 80, 80), drect, 2)
 
-    # player
+    # 플레이어
     prect = pygame.Rect(
         int(player.rect_x - camera.x),
         int(player.rect_y - camera.y),
@@ -216,6 +215,9 @@ def draw(
             int(player.rect_y - camera.y - 22),
         ),
     )
+
+    char_surf = font.render(player.character_id, True, (255, 255, 255))
+    surface.blit(char_surf, (20, 20))
 
     attack_hitbox = get_attack_hitbox(player)
     if attack_hitbox is not None:
@@ -248,9 +250,9 @@ def main() -> None:
     player.input = InputState()
     player.pos.x = 300.0
     player.pos.y = 1400.0
+    player.character_id = "brawler"
 
     platforms = build_platforms()
-
     dummy = Dummy(WORLD_W / 2, 1760 - 40 - 36)
 
     camera = Camera(SCREEN_W, SCREEN_H, WORLD_W, WORLD_H)
@@ -271,12 +273,20 @@ def main() -> None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F1:
                     show_hud = not show_hud
+
                 if event.key == pygame.K_r:
                     player = Player()
                     player.input = InputState()
                     player.pos.x = 300.0
                     player.pos.y = 1400.0
+                    player.character_id = "brawler"
                     dummy = Dummy(WORLD_W / 2, 1760 - 40 - 36)
+
+                # 캐릭터 전환 테스트
+                if event.key == pygame.K_1:
+                    player.character_id = "brawler"
+                if event.key == pygame.K_2:
+                    player.character_id = "swordsman"
 
         read_input(player.input, events)
         update_player(player, dummy, dt, platforms)
