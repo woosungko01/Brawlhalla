@@ -34,7 +34,6 @@ from systems.fighter_combat import (
     try_start_attack,
     try_start_ultimate,
     update_attack,
-    get_attack_hitbox,
 )
 from systems.dodge import (
     tick_dodge_timers,
@@ -42,6 +41,7 @@ from systems.dodge import (
     update_dodge,
     cancel_dodge,
 )
+from rendering.match_renderer import MatchRenderer
 
 
 class TrainingMatch:
@@ -49,6 +49,7 @@ class TrainingMatch:
         self.stage = build_test_stage()
         self.camera = Camera(screen_w, screen_h, self.stage.world_w, self.stage.world_h)
         self.show_hud = True
+        self.renderer = MatchRenderer()
 
         self.characters = {
             "brawler": BrawlerCharacter(),
@@ -130,7 +131,6 @@ class TrainingMatch:
                 cancel_dodge(fighter)
             try_start_attack(fighter)
 
-        # soft platform 위에서 아래 입력 시 drop-through
         if (
             fighter.is_grounded
             and fighter.input.down
@@ -147,7 +147,6 @@ class TrainingMatch:
         if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0:
             dodge_started = try_request_dodge(fighter)
 
-            # dodge가 시작되지 않았을 때만 dash/snap dash 시도
             if not dodge_started and not fighter.is_attacking:
                 if (
                     not fighter.is_grounded
@@ -186,11 +185,6 @@ class TrainingMatch:
         update_move_state(fighter)
 
     def update_dummy(self, dt: float) -> None:
-        """
-        훈련용 더미 전용 업데이트.
-        - 입력은 받지 않음
-        - 피격/낙하/착지만 처리
-        """
         d = self.dummy
         d.was_grounded = d.is_grounded
 
@@ -235,85 +229,4 @@ class TrainingMatch:
         self.camera.update(self.player.pos.x, self.player.pos.y)
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font, draw_debug_hud_fn) -> None:
-        BG_COLOR = (30, 30, 45)
-        PLAYER_COLOR = (100, 180, 255)
-        HARD_PLATFORM_COLOR = (80, 200, 120)
-        HARD_PLATFORM_BORDER = (60, 160, 90)
-        SOFT_PLATFORM_COLOR = (220, 190, 90)
-        SOFT_PLATFORM_BORDER = (180, 145, 60)
-        WORLD_BORDER_COLOR = (90, 90, 120)
-        DUMMY_COLOR = (230, 120, 120)
-        HITBOX_COLOR = (255, 220, 80)
-
-        surface.fill(BG_COLOR)
-
-        world_rect = pygame.Rect(
-            int(-self.camera.x),
-            int(-self.camera.y),
-            self.stage.world_w,
-            self.stage.world_h,
-        )
-        pygame.draw.rect(surface, WORLD_BORDER_COLOR, world_rect, 3)
-
-        for plat in self.stage.platforms:
-            rect = pygame.Rect(
-                int(plat.x - self.camera.x),
-                int(plat.y - self.camera.y),
-                int(plat.width),
-                int(plat.height),
-            )
-
-            if getattr(plat, "is_soft", False):
-                pygame.draw.rect(surface, SOFT_PLATFORM_COLOR, rect)
-                pygame.draw.rect(surface, SOFT_PLATFORM_BORDER, rect, 2)
-            else:
-                pygame.draw.rect(surface, HARD_PLATFORM_COLOR, rect)
-                pygame.draw.rect(surface, HARD_PLATFORM_BORDER, rect, 2)
-
-        for fighter, color, border in (
-            (self.player, PLAYER_COLOR, (60, 140, 220)),
-            (self.dummy, DUMMY_COLOR, (180, 80, 80)),
-        ):
-            rect = pygame.Rect(
-                int(fighter.rect_x - self.camera.x),
-                int(fighter.rect_y - self.camera.y),
-                fighter.width,
-                fighter.height,
-            )
-            pygame.draw.rect(surface, color, rect)
-            pygame.draw.rect(surface, border, rect, 2)
-
-        eye_x = int(self.player.pos.x - self.camera.x + self.player.facing * 10)
-        eye_y = int(self.player.rect_y - self.camera.y + 14)
-        pygame.draw.circle(surface, (255, 255, 255), (eye_x, eye_y), 5)
-
-        state_surf = font.render(self.player.move_state, True, (200, 200, 200))
-        surface.blit(
-            state_surf,
-            (
-                int(self.player.pos.x - self.camera.x - state_surf.get_width() // 2),
-                int(self.player.rect_y - self.camera.y - 22),
-            ),
-        )
-
-        char_surf = font.render(self.player.character.character_id, True, (255, 255, 255))
-        surface.blit(char_surf, (20, 20))
-
-        attack_hitbox = get_attack_hitbox(self.player)
-        if attack_hitbox is not None:
-            hb = pygame.Rect(
-                int(attack_hitbox.x - self.camera.x),
-                int(attack_hitbox.y - self.camera.y),
-                attack_hitbox.width,
-                attack_hitbox.height,
-            )
-            pygame.draw.rect(surface, HITBOX_COLOR, hb, 2)
-
-        if self.player.ultimate_timer > 0.0:
-            ult_surf = font.render("ULT ACTIVE", True, (255, 220, 120))
-            surface.blit(ult_surf, (20, 60))
-
-        if self.show_hud:
-            draw_debug_hud_fn(surface, self.player)
-
-        pygame.display.flip()
+        self.renderer.draw(surface, self, font, draw_debug_hud_fn)
