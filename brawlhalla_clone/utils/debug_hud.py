@@ -1,14 +1,13 @@
 # utils/debug_hud.py
 #
 # F1 키로 토글 가능한 디버그 HUD.
-# 파라미터 튜닝 시 필수.
 
 import pygame
-from core.player import Player
+from entities.fighter import Fighter
 
 _FONT: pygame.font.Font | None = None
 _COLOR = (220, 220, 80)
-_BG    = (0, 0, 0, 160)
+_BG = (0, 0, 0, 160)
 _LINE_H = 18
 
 
@@ -19,37 +18,36 @@ def _get_font() -> pygame.font.Font:
     return _FONT
 
 
-def draw_debug_hud(surface: pygame.Surface, player: Player) -> None:
-    """플레이어 디버그 정보를 화면 좌측 상단에 출력"""
+def draw_debug_hud(surface: pygame.Surface, fighter: Fighter) -> None:
+    """파이터 디버그 정보를 화면 좌측 상단에 출력"""
     font = _get_font()
 
     lines = [
-        f"pos        : ({player.pos.x:7.1f}, {player.pos.y:7.1f})",
-        f"vel        : ({player.vel.x:7.1f}, {player.vel.y:7.1f})",
-        f"state      : {player.move_state}",
-        f"grounded   : {player.is_grounded}",
-        f"fast_fall  : {player.fast_falling}",
-        f"facing     : {'→' if player.facing > 0 else '←'}",
+        f"pos        : ({fighter.pos.x:7.1f}, {fighter.pos.y:7.1f})",
+        f"vel        : ({fighter.vel.x:7.1f}, {fighter.vel.y:7.1f})",
+        f"state      : {fighter.move_state}",
+        f"grounded   : {fighter.is_grounded}",
+        f"fast_fall  : {fighter.fast_falling}",
+        f"facing     : {'→' if fighter.facing > 0 else '←'}",
         "",
-        f"jumps_used : {player.air.jumps_used} / {player.jump_cfg.MAX_AIR_JUMPS}",
-        f"total_rises: {player.air.total_air_rises_used}",
+        f"jumps_used : {fighter.air.jumps_used} / {fighter.jump_cfg.MAX_AIR_JUMPS}",
+        f"total_rises: {fighter.air.total_air_rises_used}",
         "",
-        f"jump_start : {player.jump_startup_timer:.3f}",
-        f"land_rec   : {player.landing_recovery_timer:.3f}",
-        f"dash_timer : {player.dash_timer:.3f}",
-        f"dash_dir   : {player.dash_dir}",
+        f"jump_start : {fighter.jump_startup_timer:.3f}",
+        f"land_rec   : {fighter.landing_recovery_timer:.3f}",
+        f"dash_timer : {fighter.dash_timer:.3f}",
+        f"dash_dir   : {fighter.dash_dir}",
         "",
-        f"touch_wall  : {player.touching_wall}",
-        f"wall_cling  : {player.is_wall_clinging}",
-        f"wall_dir    : {player.wall_dir}",
-        f"wall_grace  : {player.wall_detach_grace_timer:.3f}",
+        f"touch_wall : {fighter.touching_wall}",
+        f"wall_cling : {fighter.is_wall_clinging}",
+        f"wall_dir   : {fighter.wall_dir}",
+        f"wall_grace : {fighter.wall_detach_grace_timer:.3f}",
     ]
 
     pad = 6
     w = 260
     h = len(lines) * _LINE_H + pad * 2
 
-    # 반투명 배경
     bg = pygame.Surface((w, h), pygame.SRCALPHA)
     bg.fill(_BG)
     surface.blit(bg, (8, 8))

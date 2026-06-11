@@ -9,9 +9,9 @@ def build_test_stage() -> Stage:
     world_h = 1400
 
     # 메인 플랫폼
-    main_x = 600
+    main_x = 700
     main_y = 900
-    main_w = 1200
+    main_w = 1000
     main_h = 260
 
     # 위쪽 소형 플랫폼 2개

@@ -1,6 +1,6 @@
-# core/player.py
+from __future__ import annotations
 
-from core.vec2 import Vec2
+from entities.entity import Entity
 from core.input_state import InputState
 from core.air_resources import AirResources
 from config.player_config import (
@@ -9,17 +9,14 @@ from config.player_config import (
 )
 
 
-class Player:
-    def __init__(self) -> None:
+class Fighter(Entity):
+    def __init__(self, x: float, y: float, character) -> None:
         cfg = PlayerConfig()
-
-        self.pos = Vec2(cfg.SPAWN_X, cfg.SPAWN_Y)
-        self.vel = Vec2(0.0, 0.0)
-
-        self.width = cfg.WIDTH
-        self.height = cfg.HEIGHT
+        super().__init__(x, y, cfg.WIDTH, cfg.HEIGHT)
 
         self.facing = 1
+        self.input = InputState()
+        self.air = AirResources()
 
         self.is_grounded = False
         self.was_grounded = False
@@ -27,17 +24,15 @@ class Player:
         self.touching_ceiling = False
         self.near_ground = False
 
-        self.wall_dir = 0               # -1: 왼쪽 벽, 1: 오른쪽 벽, 0: 없음
+        self.wall_dir = 0
         self.is_wall_clinging = False
         self.was_wall_clinging = False
         self.wall_detach_grace_timer = 0.0
 
         self.fast_falling = False
-
         self.move_state = "idle"
 
         self.pending_jump_kind: str | None = None
-
         self.jump_startup_timer = 0.0
         self.landing_recovery_timer = 0.0
         self.fast_fall_lock_timer = 0.0
@@ -48,24 +43,18 @@ class Player:
         self.dash_reuse_timer = 0.0
         self.left_ground_since_dash = True
 
-        self.air = AirResources()
+        self.character = character
 
-        # "brawler" | "swordsman" | "gunner"
-        self.character_id = "brawler"
-
-        # 전투
         self.is_attacking = False
+        self.current_attack = None
         self.attack_name: str | None = None
         self.attack_timer = 0.0
         self.attack_total_time = 0.0
         self.attack_has_hit = False
         self.attack_extra_fired = False
-
-        # 지속형 공격용 추가 플래그
         self.attack_tick_timer = 0.0
 
         self.stun_timer = 0.0
-
         self.ultimate_timer = 0.0
         self.ultimate_ready = True
 
@@ -78,28 +67,21 @@ class Player:
         self.invuln_timer = 0.0
         self.can_attack = True
 
-        self.input = InputState()
+    def start_attack(self, attack_data) -> None:
+        self.is_attacking = True
+        self.current_attack = attack_data
+        self.attack_name = attack_data.name
+        self.attack_timer = attack_data.total_time
+        self.attack_total_time = attack_data.total_time
+        self.attack_has_hit = False
+        self.attack_extra_fired = False
+        self.attack_tick_timer = 0.0
 
-    @property
-    def rect_x(self) -> float:
-        return self.pos.x - self.width / 2
-
-    @property
-    def rect_y(self) -> float:
-        return self.pos.y - self.height / 2
-
-    @property
-    def bottom(self) -> float:
-        return self.pos.y + self.height / 2
-
-    @property
-    def right(self) -> float:
-        return self.pos.x + self.width / 2
-
-    @property
-    def left(self) -> float:
-        return self.pos.x - self.width / 2
-
-    @property
-    def top(self) -> float:
-        return self.pos.y - self.height / 2
+    def end_attack(self) -> None:
+        self.is_attacking = False
+        self.current_attack = None
+        self.attack_name = None
+        self.attack_total_time = 0.0
+        self.attack_has_hit = False
+        self.attack_extra_fired = False
+        self.attack_tick_timer = 0.0

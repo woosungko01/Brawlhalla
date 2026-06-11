@@ -1,9 +1,6 @@
 # systems/movement.py
-#
-# 수평 이동 처리.
-# 대시 중일 때는 이 시스템을 건너뛰고 dash.py가 처리한다.
 
-from core.player import Player
+from entities.fighter import Fighter
 
 
 def _move_toward(value: float, target: float, max_delta: float) -> float:
@@ -15,29 +12,28 @@ def _move_toward(value: float, target: float, max_delta: float) -> float:
     return value
 
 
-def apply_horizontal_control(player: Player, dt: float) -> None:
+def apply_horizontal_control(fighter: Fighter, dt: float) -> None:
     """
     좌우 입력에 따라 vel.x를 갱신.
     대시 시스템이 활성화 중이면 호출하지 않는다.
     """
-    cfg = player.move_cfg
-    move_x = player.input.move_x   # type: ignore[attr-defined]  # input은 update에서 주입
+    cfg = fighter.move_cfg
+    move_x = fighter.input.move_x
 
-    # 방향 갱신
     if move_x != 0:
-        player.facing = move_x
+        fighter.facing = move_x
 
-    if player.is_grounded:
-        accel    = cfg.GROUND_ACCEL
+    if fighter.is_grounded:
+        accel = cfg.GROUND_ACCEL
         friction = cfg.GROUND_FRICTION
-        max_spd  = cfg.MAX_RUN_SPEED
+        max_spd = cfg.MAX_RUN_SPEED
     else:
-        accel    = cfg.AIR_ACCEL
+        accel = cfg.AIR_ACCEL
         friction = cfg.AIR_DRAG
-        max_spd  = cfg.MAX_AIR_SPEED
+        max_spd = cfg.MAX_AIR_SPEED
 
     if move_x != 0:
         target = move_x * max_spd
-        player.vel.x = _move_toward(player.vel.x, target, accel * dt)
+        fighter.vel.x = _move_toward(fighter.vel.x, target, accel * dt)
     else:
-        player.vel.x = _move_toward(player.vel.x, 0.0, friction * dt)
+        fighter.vel.x = _move_toward(fighter.vel.x, 0.0, friction * dt)

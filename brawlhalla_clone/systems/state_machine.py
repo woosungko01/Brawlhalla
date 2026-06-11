@@ -1,20 +1,20 @@
-#systems/state_machine.py
+# systems/state_machine.py
 
-from core.player import Player
+from entities.fighter import Fighter
 
 
-def update_move_state(player: Player) -> None:
-    if player.is_dashing:
-        player.move_state = "dashing"
-    elif player.jump_startup_timer > 0:
-        player.move_state = "jump_startup"
-    elif player.is_wall_clinging:
-        player.move_state = "wall_cling"
-    elif player.landing_recovery_timer > 0 and player.is_grounded:
-        player.move_state = "landing"
-    elif not player.is_grounded:
-        player.move_state = "airborne"
-    elif abs(player.vel.x) > 1.0:
-        player.move_state = "run"
+def update_move_state(fighter: Fighter) -> None:
+    if fighter.is_dashing:
+        fighter.move_state = "dashing"
+    elif fighter.jump_startup_timer > 0:
+        fighter.move_state = "jump_startup"
+    elif fighter.is_wall_clinging:
+        fighter.move_state = "wall_cling"
+    elif fighter.landing_recovery_timer > 0 and fighter.is_grounded:
+        fighter.move_state = "landing"
+    elif not fighter.is_grounded:
+        fighter.move_state = "airborne"
+    elif abs(fighter.vel.x) > 1.0:
+        fighter.move_state = "run"
     else:
-        player.move_state = "idle"
+        fighter.move_state = "idle"
