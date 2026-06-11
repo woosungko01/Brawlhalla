@@ -7,15 +7,22 @@ from utils.debug_hud import draw_debug_hud
 
 
 class GameApp:
-    SCREEN_W = 1280
-    SCREEN_H = 720
     FPS = 60
     TITLE = "Brawlhalla OOP Prototype"
 
     def __init__(self) -> None:
         pygame.init()
-        self.screen = pygame.display.set_mode((self.SCREEN_W, self.SCREEN_H))
+
+        info = pygame.display.Info()
+        self.SCREEN_W = info.current_w - 16
+        self.SCREEN_H = info.current_h - 80
+
+        self.screen = pygame.display.set_mode(
+            (self.SCREEN_W, self.SCREEN_H),
+            pygame.RESIZABLE
+        )
         pygame.display.set_caption(self.TITLE)
+
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("monospace", 13)
 

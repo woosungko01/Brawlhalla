@@ -71,10 +71,8 @@ class DashConfig:
     GROUND_SNAP_DIST: float = 50.0
 
 class PlayerConfig:
-    """플레이어 물리 크기 등 기본 설정"""
-
-    WIDTH: int = 48
-    HEIGHT: int = 64
+    WIDTH: int = 60
+    HEIGHT: int = 80
 
     SPAWN_X: float = 400.0
     SPAWN_Y: float = 200.0
