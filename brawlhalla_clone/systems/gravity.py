@@ -12,7 +12,6 @@ from core.player import Player
 
 
 def apply_vertical_forces(player: Player, dt: float) -> None:
-    """중력과 패스트폴을 적용해 vel.y를 갱신"""
     if player.is_grounded:
         if player.vel.y > 0:
             player.vel.y = 0.0
@@ -24,8 +23,11 @@ def apply_vertical_forces(player: Player, dt: float) -> None:
     wants_fast_fall = bool(player.input.down)  # type: ignore[attr-defined]
     can_fast_fall = player.fast_fall_lock_timer <= 0.0
 
-    # 점프 직후 아주 잠깐은 fast fall 금지
-    player.fast_falling = wants_fast_fall and can_fast_fall
+    # wall cling 중에는 fast fall 불가
+    if player.is_wall_clinging:
+        player.fast_falling = False
+    else:
+        player.fast_falling = wants_fast_fall and can_fast_fall
 
     gravity = cfg.GRAVITY
     max_fall_speed = cfg.MAX_FALL_SPEED
@@ -38,3 +40,7 @@ def apply_vertical_forces(player: Player, dt: float) -> None:
 
     if player.vel.y > max_fall_speed:
         player.vel.y = max_fall_speed
+
+    # 벽 슬라이드 속도 제한
+    if player.is_wall_clinging and player.vel.y > cfg.WALL_SLIDE_SPEED:
+        player.vel.y = cfg.WALL_SLIDE_SPEED

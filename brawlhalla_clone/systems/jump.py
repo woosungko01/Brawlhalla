@@ -80,3 +80,7 @@ def _do_jump(player: Player, kind: str) -> None:
 
     if kind == "air":
         player.air.consume_jump()
+
+    player.is_wall_clinging = False
+    player.was_wall_clinging = False
+    player.wall_dir = 0

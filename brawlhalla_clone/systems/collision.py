@@ -56,6 +56,7 @@ def move_and_collide(
     # 프레임 시작 시 접촉 상태 초기화
     player.touching_wall = False
     player.touching_ceiling = False
+    player.wall_dir = 0
 
     # ── 수평 이동 ──────────────────────────────────────────
     player.pos.x += player.vel.x * dt
@@ -70,10 +71,12 @@ def move_and_collide(
         # 플레이어의 오른쪽 면이 플랫폼의 왼쪽 면에 닿은 상황
         if player.pos.x < plat.centerx:
             player.pos.x = plat.left - player.width / 2
-            result.hit_left_wall = True
+            result.hit_right_wall = True
+            player.wall_dir = 1  # 벽이 플레이어 오른쪽에 있음
         else:
             player.pos.x = plat.right + player.width / 2
-            result.hit_right_wall = True
+            result.hit_left_wall = True
+            player.wall_dir = -1  # 벽이 플레이어 왼쪽에 있음
 
         player.vel.x = 0.0
         player.touching_wall = True
@@ -147,13 +150,15 @@ def handle_landing(player: Player) -> None:
     player.air.reset()
     player.landing_recovery_timer = player.jump_cfg.LANDING_RECOVERY_TIME
 
-    # 공중을 한 번 거쳤다는 정보는 유지
     player.left_ground_since_dash = True
 
-    # active dash 안전 정리
     player.is_dashing = False
     player.dash_timer = 0.0
     player.dash_dir = 0
+
+    player.is_wall_clinging = False
+    player.was_wall_clinging = False
+    player.wall_dir = 0
 
 # ── 내부 헬퍼 ─────────────────────────────────────────────────────────────
 
@@ -201,3 +206,34 @@ def snap_to_ground(player: Player, platforms: List[Platform]) -> bool:
     player.vel.y = 0.0
     player.is_grounded = True
     return True
+
+def update_wall_cling(player: Player) -> None:
+    """
+    wall cling 판정.
+    브롤할라 느낌:
+    - 공중 상태
+    - 벽 접촉 중
+    - 아래로 떨어지는 중(또는 정지)
+    - fast fall 입력 중 아님
+    - 벽 쪽으로 입력 중
+    """
+    move_x = player.input.move_x  # type: ignore[attr-defined]
+    holding_toward_wall = (move_x == player.wall_dir)
+
+    player.is_wall_clinging = (
+        not player.is_grounded
+        and player.touching_wall
+        and player.vel.y >= 0.0
+        and not player.input.down  # type: ignore[attr-defined]
+        and holding_toward_wall
+    )
+
+def handle_wall_touch(player: Player) -> None:
+    """
+    wall cling 상태에 새로 진입한 순간 한 번만 실행.
+    air resources를 회복한다.
+    """
+    if not player.was_wall_clinging and player.is_wall_clinging:
+        player.air.reset()
+
+    player.was_wall_clinging = player.is_wall_clinging

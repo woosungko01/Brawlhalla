@@ -1,3 +1,5 @@
+#systems/state_machine.py
+
 from core.player import Player
 
 
@@ -6,6 +8,8 @@ def update_move_state(player: Player) -> None:
         player.move_state = "dashing"
     elif player.jump_startup_timer > 0:
         player.move_state = "jump_startup"
+    elif player.is_wall_clinging:
+        player.move_state = "wall_cling"
     elif player.landing_recovery_timer > 0 and player.is_grounded:
         player.move_state = "landing"
     elif not player.is_grounded:

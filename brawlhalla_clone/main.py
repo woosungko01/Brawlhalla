@@ -1,4 +1,5 @@
 # main.py
+
 import sys
 import pygame
 
@@ -23,6 +24,8 @@ from systems.collision import (
     update_grounded,
     handle_landing,
     snap_to_ground,
+    update_wall_cling,
+    handle_wall_touch,
 )
 from systems.state_machine import update_move_state
 from systems.combat import (
@@ -128,6 +131,11 @@ def update_player(player: Player, dummy: Dummy, dt: float, stage: Stage) -> None
     apply_vertical_forces(player, dt)
     move_and_collide(player, dt, stage.platforms)
     update_grounded(player, stage.platforms)
+
+    # wall touch / wall slide 판정
+    update_wall_cling(player)
+    handle_wall_touch(player)
+
     handle_landing(player)
     update_move_state(player)
 

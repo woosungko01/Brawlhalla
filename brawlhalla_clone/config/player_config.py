@@ -43,17 +43,14 @@ class JumpConfig:
 class GravityConfig:
     """중력 / 낙하 관련 수치"""
 
-    # 기본 중력 가속도 (pixels/sec²)
     GRAVITY: float = 3000.0
-
-    # 일반 낙하 최대 속도 (pixels/sec)
     MAX_FALL_SPEED: float = 700.0
 
-    # 패스트폴
-    # 아래 입력 시 추가 중력을 더 크게 주되,
-    # 종단속도(최대 낙하속도)는 별도로 제한한다.
     FAST_FALL_ACCEL_BONUS: float = 5000.0
     FAST_FALL_TERMINAL_SPEED: float = 1100.0
+
+    # 벽에 붙어 있을 때 최대 미끄러짐 속도
+    WALL_SLIDE_SPEED: float = 180.0
 
 
 class DashConfig:

@@ -27,6 +27,10 @@ class Player:
         self.touching_ceiling = False
         self.near_ground = False
 
+        self.wall_dir = 0               # -1: 왼쪽 벽, 1: 오른쪽 벽, 0: 없음
+        self.is_wall_clinging = False
+        self.was_wall_clinging = False
+
         self.fast_falling = False
 
         self.move_state = "idle"
