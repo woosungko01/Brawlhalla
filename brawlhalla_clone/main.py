@@ -1,3 +1,5 @@
+#main.py
+
 from game.game_app import GameApp
 
 

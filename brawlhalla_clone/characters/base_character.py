@@ -1,3 +1,5 @@
+#characters/base_character
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import pygame

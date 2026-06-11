@@ -1,3 +1,5 @@
+#entities/player_fighter.py
+
 from entities.fighter import Fighter
 
 

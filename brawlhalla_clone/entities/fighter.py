@@ -1,3 +1,5 @@
+#entities/fighter.py
+
 from __future__ import annotations
 
 from entities.entity import Entity

@@ -1,3 +1,5 @@
+#entities/entity.py
+
 from core.vec2 import Vec2
 
 
