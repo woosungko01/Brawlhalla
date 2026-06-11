@@ -1,5 +1,3 @@
-# entities/fighter.py
-
 from __future__ import annotations
 
 from entities.entity import Entity
@@ -9,7 +7,6 @@ from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
 )
-
 
 
 class Fighter(Entity):
@@ -27,14 +24,6 @@ class Fighter(Entity):
         self.touching_ceiling = False
         self.near_ground = False
 
-        self.is_dodging = False
-        self.dodge_timer = 0.0
-        self.dodge_dir_x = 0.0
-        self.dodge_dir_y = 0.0
-        self.dodge_kind: str | None = None
-
-        self.air_dodge_available = True
-
         self.wall_dir = 0
         self.is_wall_clinging = False
         self.was_wall_clinging = False
@@ -45,7 +34,6 @@ class Fighter(Entity):
 
         self.pending_jump_kind: str | None = None
         self.jump_startup_timer = 0.0
-        self.landing_recovery_timer = 0.0
         self.fast_fall_lock_timer = 0.0
 
         self.is_dashing = False
@@ -54,7 +42,13 @@ class Fighter(Entity):
         self.dash_reuse_timer = 0.0
         self.left_ground_since_dash = True
 
-        self.air = AirResources()
+        # dodge
+        self.is_dodging = False
+        self.dodge_timer = 0.0
+        self.dodge_dir_x = 0.0
+        self.dodge_dir_y = 0.0
+        self.dodge_kind: str | None = None
+        self.air_dodge_available = True
 
         self.character = character
 
@@ -75,12 +69,12 @@ class Fighter(Entity):
         self.jump_cfg = JumpConfig()
         self.gravity_cfg = GravityConfig()
         self.dash_cfg = DashConfig()
+        self.dodge_cfg = DodgeConfig()
 
         self.dodge_cooldown_timer = 0.0
         self.invuln_timer = 0.0
         self.can_attack = True
 
-        # soft platform drop-through
         self.drop_through_timer = 0.0
 
     def start_attack(self, attack_data) -> None:

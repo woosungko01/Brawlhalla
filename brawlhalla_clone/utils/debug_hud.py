@@ -34,7 +34,6 @@ def draw_debug_hud(surface: pygame.Surface, fighter: Fighter) -> None:
         f"total_rises: {fighter.air.total_air_rises_used}",
         "",
         f"jump_start : {fighter.jump_startup_timer:.3f}",
-        f"land_rec   : {fighter.landing_recovery_timer:.3f}",
         f"dash_timer : {fighter.dash_timer:.3f}",
         f"dash_dir   : {fighter.dash_dir}",
         "",

@@ -23,8 +23,6 @@ def tick_combat_timers(fighter, dt: float) -> None:
 def try_start_attack(fighter) -> None:
     if fighter.is_attacking:
         return
-    if fighter.landing_recovery_timer > 0.0:
-        return
     if fighter.stun_timer > 0.0:
         return
 

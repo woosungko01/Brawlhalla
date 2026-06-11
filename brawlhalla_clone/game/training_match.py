@@ -99,9 +99,6 @@ class TrainingMatch:
         if fighter.jump_startup_timer > 0.0:
             fighter.jump_startup_timer = max(0.0, fighter.jump_startup_timer - dt)
 
-        if fighter.landing_recovery_timer > 0.0:
-            fighter.landing_recovery_timer = max(0.0, fighter.landing_recovery_timer - dt)
-
         if fighter.fast_fall_lock_timer > 0.0:
             fighter.fast_fall_lock_timer = max(0.0, fighter.fast_fall_lock_timer - dt)
 

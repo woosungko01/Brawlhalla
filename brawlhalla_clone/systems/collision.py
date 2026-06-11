@@ -185,7 +185,6 @@ def handle_landing(fighter: Fighter) -> None:
 
     fighter.fast_falling = False
     fighter.air.reset()
-    fighter.landing_recovery_timer = fighter.jump_cfg.LANDING_RECOVERY_TIME
 
     fighter.left_ground_since_dash = True
 

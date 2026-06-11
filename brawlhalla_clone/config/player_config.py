@@ -33,9 +33,6 @@ class JumpConfig:
     # 스타트업 딜레이 (sec)
     JUMP_STARTUP_TIME: float = 0.04
 
-    # 착지 후 행동 불능 시간 (sec)
-    LANDING_RECOVERY_TIME: float = 0.06
-
     # 점프 직후 fast fall을 아주 잠깐 막는 시간
     FAST_FALL_LOCK_TIME: float = 0.045
 

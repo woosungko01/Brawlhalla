@@ -8,9 +8,6 @@ def can_request_jump(fighter: Fighter) -> bool:
     if fighter.is_dodging:
         return False
 
-    if fighter.landing_recovery_timer > 0.0:
-        return False
-
     if fighter.jump_startup_timer > 0:
         return False
 

@@ -12,8 +12,6 @@ def update_move_state(fighter: Fighter) -> None:
         fighter.move_state = "jump_startup"
     elif fighter.is_wall_clinging:
         fighter.move_state = "wall_cling"
-    elif fighter.landing_recovery_timer > 0 and fighter.is_grounded:
-        fighter.move_state = "landing"
     elif not fighter.is_grounded:
         fighter.move_state = "airborne"
     elif abs(fighter.vel.x) > 1.0:
