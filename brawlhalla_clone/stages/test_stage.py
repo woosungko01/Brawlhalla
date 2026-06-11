@@ -5,42 +5,46 @@ from systems.collision import Platform
 
 
 def build_test_stage() -> Stage:
-    world_w = 3200
-    world_h = 1800
+    world_w = 2400
+    world_h = 1400
 
-    floor_y = 1760
-    floor_h = 40
+    # 메인 플랫폼
+    main_x = 600
+    main_y = 900
+    main_w = 1200
+    main_h = 260
+
+    # 위쪽 소형 플랫폼 2개
+    soft_w = 220
+    soft_h = 20
+    soft_y = 620
+
+    left_soft_x = 780
+    right_soft_x = 1400
+
+    player_spawn_x = main_x + 350
+    player_spawn_y = main_y - 80
+
+    dummy_spawn_x = main_x + main_w - 350
+    dummy_spawn_y = main_y - 80
 
     return Stage(
         name="test_stage",
         world_w=world_w,
         world_h=world_h,
 
-        player_spawn_x=300.0,
-        player_spawn_y=1400.0,
+        player_spawn_x=player_spawn_x,
+        player_spawn_y=player_spawn_y,
 
-        dummy_spawn_x=world_w / 2,
-        dummy_spawn_y=floor_y - floor_h - 36,
+        dummy_spawn_x=dummy_spawn_x,
+        dummy_spawn_y=dummy_spawn_y,
 
         platforms=[
-            Platform(0, 1760, 3200, 40),
+            # 메인 플랫폼
+            Platform(main_x, main_y, main_w, main_h),
 
-            Platform(150, 1500, 250, 20),
-            Platform(450, 1380, 220, 20),
-            Platform(120, 1220, 180, 20),
-
-            Platform(700, 1450, 300, 20),
-            Platform(1100, 1300, 260, 20),
-            Platform(900, 1120, 220, 20),
-            Platform(1400, 980, 250, 20),
-
-            Platform(1900, 1500, 280, 20),
-            Platform(2300, 1360, 240, 20),
-            Platform(2600, 1200, 220, 20),
-            Platform(2900, 1020, 180, 20),
-
-            Platform(1650, 1600, 180, 20),
-            Platform(2100, 1180, 160, 20),
-            Platform(2500, 900, 150, 20),
+            # 위 소형 플랫폼 2개
+            Platform(left_soft_x, soft_y, soft_w, soft_h),
+            Platform(right_soft_x, soft_y, soft_w, soft_h),
         ],
     )
