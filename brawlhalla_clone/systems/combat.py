@@ -16,6 +16,9 @@ def tick_combat_timers(player: Player, dummy: Dummy, dt: float) -> None:
     if player.stun_timer > 0.0:
         player.stun_timer = max(0.0, player.stun_timer - dt)
 
+    if player.attack_tick_timer > 0.0:
+        player.attack_tick_timer = max(0.0, player.attack_tick_timer - dt)
+
     if dummy.hitstun_timer > 0.0:
         dummy.hitstun_timer = max(0.0, dummy.hitstun_timer - dt)
 
@@ -45,11 +48,14 @@ def try_start_ultimate(player: Player) -> None:
         return
 
     if player.character_id == "brawler":
-        _start_attack(player, "brawler_ultimate", 5.0)
+        player.ultimate_timer = 5.0
+
     elif player.character_id == "swordsman":
         _start_attack(player, "sword_ultimate", 1.20)
 
-    #player.ultimate_ready = False
+    elif player.character_id == "gunner":
+        _start_attack(player, "gunner_ultimate", 4.0)
+        player.attack_tick_timer = 0.0
 
 
 def resolve_basic_attack(player: Player) -> str | None:
@@ -71,6 +77,16 @@ def resolve_basic_attack(player: Player) -> str | None:
         else:
             return "sword_counter"
 
+    if player.character_id == "gunner":
+        if player.input.up:
+            return "gunner_up_shot"
+        elif player.input.down:
+            return "gunner_down_shot"
+        elif player.input.move_x != 0:
+            return "gunner_side_shot"
+        else:
+            return "gunner_low_shot"
+
     return None
 
 
@@ -79,13 +95,18 @@ def get_attack_total_time(name: str) -> float:
         "brawler_uppercut": 0.40,
         "brawler_punch": 0.16,
         "brawler_kick": 0.40,
-        "brawler_ultimate": 5.0,
 
         "sword_counter": 0.30,
         "sword_side_slash": 0.30,
         "sword_up_slash": 0.36,
         "sword_down_slash": 0.36,
         "sword_ultimate": 1.20,
+
+        "gunner_low_shot": 0.14,
+        "gunner_side_shot": 0.12,
+        "gunner_up_shot": 0.14,
+        "gunner_down_shot": 0.14,
+        "gunner_ultimate": 4.0,
     }
     return table[name]
 
@@ -97,6 +118,7 @@ def _start_attack(player: Player, name: str, total_time: float) -> None:
     player.attack_total_time = total_time
     player.attack_has_hit = False
     player.attack_extra_fired = False
+    player.attack_tick_timer = 0.0
 
 
 def update_attack(player: Player, dummy: Dummy, dt: float) -> None:
@@ -107,6 +129,7 @@ def update_attack(player: Player, dummy: Dummy, dt: float) -> None:
 
     if name == "brawler_kick":
         player.vel.x = player.facing * 500.0
+
     elif name in (
         "brawler_uppercut",
         "sword_counter",
@@ -116,6 +139,25 @@ def update_attack(player: Player, dummy: Dummy, dt: float) -> None:
         "sword_ultimate",
     ):
         player.vel.x = 0.0
+
+    elif name in (
+        "gunner_low_shot",
+        "gunner_side_shot",
+        "gunner_up_shot",
+        "gunner_down_shot",
+    ):
+        player.vel.x = 0.0
+
+    elif name == "gunner_ultimate":
+        # 이동 가능하게 처리
+        move_x = player.input.move_x
+        player.vel.x = move_x * player.move_cfg.MAX_RUN_SPEED
+
+        if player.attack_tick_timer <= 0.0:
+            hitbox = get_attack_hitbox(player)
+            if hitbox is not None:
+                _try_hit_dummy(player, dummy, hitbox)
+            player.attack_tick_timer = 0.12
 
     if name == "sword_ultimate":
         elapsed = player.attack_total_time - player.attack_timer
@@ -129,7 +171,7 @@ def update_attack(player: Player, dummy: Dummy, dt: float) -> None:
                 _try_hit_dummy(player, dummy, hitbox)
             player.attack_extra_fired = True
 
-    else:
+    elif name != "gunner_ultimate":
         active = _is_attack_active(player)
         if active and not player.attack_has_hit:
             hitbox = get_attack_hitbox(player)
@@ -137,14 +179,12 @@ def update_attack(player: Player, dummy: Dummy, dt: float) -> None:
                 _try_hit_dummy(player, dummy, hitbox)
 
     if player.attack_timer <= 0.0:
-        if name == "brawler_ultimate":
-            player.ultimate_timer = 5.0
-
         player.is_attacking = False
         player.attack_name = None
         player.attack_total_time = 0.0
         player.attack_has_hit = False
         player.attack_extra_fired = False
+        player.attack_tick_timer = 0.0
 
 
 def _is_attack_active(player: Player) -> bool:
@@ -163,6 +203,11 @@ def _is_attack_active(player: Player) -> bool:
         "sword_side_slash": (0.12, 0.20),
         "sword_up_slash": (0.14, 0.24),
         "sword_down_slash": (0.14, 0.24),
+
+        "gunner_low_shot": (0.03, 0.08),
+        "gunner_side_shot": (0.02, 0.06),
+        "gunner_up_shot": (0.03, 0.08),
+        "gunner_down_shot": (0.03, 0.08),
     }
 
     if name not in windows:
@@ -179,7 +224,7 @@ def get_attack_hitbox(player: Player) -> pygame.Rect | None:
     bonus = 55 if player.ultimate_timer > 0.0 else 0
     name = player.attack_name
 
-    if name not in ("sword_ultimate",) and not _is_attack_active(player):
+    if name not in ("sword_ultimate", "gunner_ultimate") and not _is_attack_active(player):
         return None
 
     if name == "brawler_uppercut":
@@ -233,15 +278,64 @@ def get_attack_hitbox(player: Player) -> pygame.Rect | None:
 
     if name == "sword_ultimate":
         elapsed = player.attack_total_time - player.attack_timer
-
-        # 1초 후 약 0.12초 동안은 hitbox를 보이게 유지
         if not (1.00 <= elapsed <= 1.12):
             return None
 
         w = 500
         h = 160
-        x = player.pos.x + 10
         y = player.pos.y - 80
+
+        if player.facing == 1:
+            x = player.pos.x + 10
+        else:
+            x = player.pos.x - 10 - w
+
+        return pygame.Rect(int(x), int(y), int(w), int(h))
+
+    if name == "gunner_low_shot":
+        # 전방 아래 하체 사격 - 길이 축소
+        w = 80
+        h = 26
+        if player.facing == 1:
+            x = player.pos.x + 18
+        else:
+            x = player.pos.x - 18 - w
+        y = player.pos.y + 18
+        return pygame.Rect(int(x), int(y), int(w), int(h))
+
+    if name == "gunner_side_shot":
+        # 히트스캔 느낌 - 길이 절반 수준으로 축소
+        w = 140
+        h = 18
+        if player.facing == 1:
+            x = player.pos.x + 18
+        else:
+            x = player.pos.x - 18 - w
+        y = player.pos.y - 12
+        return pygame.Rect(int(x), int(y), int(w), int(h))
+
+    if name == "gunner_up_shot":
+        # 머리 위 넓게
+        w = 120
+        h = 60
+        x = player.pos.x - (w / 2)
+        y = player.pos.y - 110
+        return pygame.Rect(int(x), int(y), int(w), int(h))
+
+    if name == "gunner_down_shot":
+        # 발밑 넓게
+        w = 120
+        h = 60
+        x = player.pos.x - (w / 2)
+        y = player.pos.y + 20
+        return pygame.Rect(int(x), int(y), int(w), int(h))
+
+    if name == "gunner_ultimate":
+        # 원형 느낌 더 크게
+        w = 320
+        h = 320
+        x = player.pos.x - (w / 2)
+        y = player.pos.y - (h / 2)
         return pygame.Rect(int(x), int(y), int(w), int(h))
 
     return None
@@ -302,6 +396,35 @@ def _apply_hit(player: Player, dummy: Dummy) -> None:
         dummy.vel.x = player.facing * 900.0
         dummy.vel.y = -720.0
         dummy.hitstun_timer = 0.55
+
+    elif name == "gunner_low_shot":
+        dummy.vel.x = player.facing * 220.0
+        dummy.vel.y = 80.0
+        dummy.hitstun_timer = 0.10
+
+    elif name == "gunner_side_shot":
+        dummy.vel.x = player.facing * 420.0
+        dummy.vel.y = -50.0
+        dummy.hitstun_timer = 0.12
+
+    elif name == "gunner_up_shot":
+        dummy.vel.x = 0.0
+        dummy.vel.y = -820.0
+        dummy.hitstun_timer = 0.16
+
+    elif name == "gunner_down_shot":
+        dummy.vel.x = 0.0
+        dummy.vel.y = 900.0
+        dummy.hitstun_timer = 0.16
+
+    elif name == "gunner_ultimate":
+        dx = dummy.pos.x - player.pos.x
+        if dx == 0:
+            dx = 1.0
+        direction = 1 if dx > 0 else -1
+        dummy.vel.x = direction * 420.0
+        dummy.vel.y = -240.0
+        dummy.hitstun_timer = 0.14
 
 
 def update_dummy(dummy: Dummy, dt: float, ground_y: float) -> None:

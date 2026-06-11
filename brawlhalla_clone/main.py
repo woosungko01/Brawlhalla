@@ -268,6 +268,8 @@ def main() -> None:
                     player.character_id = "brawler"
                 if event.key == pygame.K_2:
                     player.character_id = "swordsman"
+                if event.key == pygame.K_3:
+                    player.character_id = "gunner"
 
         read_input(player.input, events)
         update_player(player, dummy, dt, stage)

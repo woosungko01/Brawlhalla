@@ -45,7 +45,7 @@ class Player:
 
         self.air = AirResources()
 
-        # 캐릭터 종류: "brawler" | "swordsman"
+        # "brawler" | "swordsman" | "gunner"
         self.character_id = "brawler"
 
         # 전투
@@ -56,12 +56,13 @@ class Player:
         self.attack_has_hit = False
         self.attack_extra_fired = False
 
-        # 카운터 성공 효과용
+        # 지속형 공격용 추가 플래그
+        self.attack_tick_timer = 0.0
+
         self.stun_timer = 0.0
 
-        # 궁극기
         self.ultimate_timer = 0.0
-        self.ultimate_ready = True   # 실험용
+        self.ultimate_ready = True
 
         self.move_cfg = MovementConfig()
         self.jump_cfg = JumpConfig()
