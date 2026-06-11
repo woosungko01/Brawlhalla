@@ -1,4 +1,4 @@
-#game/game_app.py
+# game/game_app.py
 
 import sys
 import pygame
@@ -65,6 +65,10 @@ class GameApp:
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+
                 if event.key == pygame.K_F1:
                     self.match.show_hud = not self.match.show_hud
                 if event.key == pygame.K_r:
@@ -86,4 +90,4 @@ class GameApp:
             self.read_input(self.match.player.input, events)
 
             self.match.update(dt)
-            self.match.draw(self.screen, self.font, draw_debug_hud)
+            self.match.draw(self.screen, dt, self.font, draw_debug_hud)

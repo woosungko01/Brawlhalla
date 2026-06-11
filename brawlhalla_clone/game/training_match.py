@@ -228,5 +228,5 @@ class TrainingMatch:
         self.update_dummy(dt)
         self.camera.update(self.player.pos.x, self.player.pos.y)
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font, draw_debug_hud_fn) -> None:
-        self.renderer.draw(surface, self, font, draw_debug_hud_fn)
+    def draw(self, surface: pygame.Surface, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:
+        self.renderer.draw(surface, self, dt, font, draw_debug_hud_fn)
