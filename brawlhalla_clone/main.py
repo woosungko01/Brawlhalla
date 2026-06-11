@@ -33,8 +33,8 @@ from systems.collision import (
     handle_landing,
     snap_to_ground,
 )
-from systems.state_machine import update_move_state
 
+from systems.state_machine import update_move_state
 from utils.debug_hud import draw_debug_hud
 
 
