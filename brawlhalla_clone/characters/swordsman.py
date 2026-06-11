@@ -4,8 +4,9 @@ from __future__ import annotations
 import pygame
 
 from characters.base_character import BaseCharacter
-from characters.attack_data import AttackData, HitEffect
+from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
+from combat.knockback import FixedKnockback
 
 
 class SwordsmanCharacter(BaseCharacter):
@@ -42,7 +43,7 @@ class SwordsmanCharacter(BaseCharacter):
                 42,
                 72,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(0.0, 0.0, 0.50),
+            knockback_model=FixedKnockback(8.0, 0.0, 0.0, 0.22),
         )
 
     def _side(self) -> AttackData:
@@ -57,7 +58,7 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 42,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 340.0, -180.0, 0.18),
+            knockback_model=FixedKnockback(10.0, 260.0, -140.0, 0.18),
         )
 
     def _up(self) -> AttackData:
@@ -72,7 +73,7 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 70,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 120.0, -900.0, 0.28),
+            knockback_model=FixedKnockback(11.0, 110.0, -680.0, 0.24),
         )
 
     def _up_air(self) -> AttackData:
@@ -87,7 +88,7 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 90,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 90.0, -980.0, 0.28),
+            knockback_model=FixedKnockback(12.0, 90.0, -760.0, 0.26),
         )
 
     def _down_ground(self) -> AttackData:
@@ -102,7 +103,7 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 70,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 150.0, 920.0, 0.28),
+            knockback_model=FixedKnockback(11.0, 160.0, 420.0, 0.22),
         )
 
     def _down_air(self) -> AttackData:
@@ -117,7 +118,7 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 80,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 100.0, 980.0, 0.28),
+            knockback_model=FixedKnockback(12.0, 120.0, 520.0, 0.24),
         )
 
     def _ultimate(self) -> AttackData:
@@ -137,5 +138,5 @@ class SwordsmanCharacter(BaseCharacter):
             active_start=1.00,
             active_end=1.12,
             hitbox_factory=hitbox,
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 900.0, -720.0, 0.55),
+            knockback_model=FixedKnockback(18.0, 520.0, -520.0, 0.40),
         )

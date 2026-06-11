@@ -1,5 +1,3 @@
-# systems/fighter_combat.py
-
 import pygame
 
 
@@ -13,11 +11,11 @@ def tick_combat_timers(fighter, dt: float) -> None:
     if fighter.stun_timer > 0.0:
         fighter.stun_timer = max(0.0, fighter.stun_timer - dt)
 
+    if fighter.hitstun_timer > 0.0:
+        fighter.hitstun_timer = max(0.0, fighter.hitstun_timer - dt)
+
     if fighter.attack_tick_timer > 0.0:
         fighter.attack_tick_timer = max(0.0, fighter.attack_tick_timer - dt)
-
-    if hasattr(fighter, "hitstun_timer") and fighter.hitstun_timer > 0.0:
-        fighter.hitstun_timer = max(0.0, fighter.hitstun_timer - dt)
 
 
 def try_start_attack(fighter) -> None:
@@ -56,10 +54,7 @@ def get_attack_hitbox(fighter):
     if fighter.current_attack is None:
         return None
 
-    if (
-        fighter.current_attack.name != "ultimate"
-        and not is_attack_active(fighter)
-    ):
+    if fighter.current_attack.name != "ultimate" and not is_attack_active(fighter):
         return None
 
     return fighter.character.get_attack_hitbox(fighter)
@@ -113,12 +108,9 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
 
     effect = attacker.character.get_hit_effect(attacker, target)
 
+    target.damage.add_damage(effect.damage)
     target.vel.x = effect.vx
     target.vel.y = effect.vy
-
-    if hasattr(target, "hitstun_timer"):
-        target.hitstun_timer = effect.hitstun
-    else:
-        target.stun_timer = effect.hitstun
+    target.hitstun_timer = effect.hitstun
 
     attacker.attack_has_hit = True

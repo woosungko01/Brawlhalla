@@ -1,11 +1,10 @@
-# characters/base_character.py
-
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import pygame
 
-from characters.attack_data import AttackData, HitEffect
+from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
+from combat.knockback import HitEffect
 
 
 class BaseCharacter(ABC):
@@ -16,21 +15,6 @@ class BaseCharacter(ABC):
         return self.get_attack_for_slot(slot)
 
     def resolve_attack_slot(self, fighter) -> AttackSlot:
-        """
-        공통 공격 슬롯 해석 규칙
-
-        지상:
-        - no input -> neutral
-        - left/right -> side
-        - up -> up
-        - down -> down_ground
-
-        공중:
-        - no input -> up_air
-        - up -> up_air
-        - left/right -> side
-        - down -> down_air
-        """
         if fighter.is_grounded:
             if fighter.input.up:
                 return AttackSlot.UP
@@ -40,7 +24,6 @@ class BaseCharacter(ABC):
                 return AttackSlot.SIDE
             return AttackSlot.NEUTRAL
 
-        # 공중
         if fighter.input.down:
             return AttackSlot.DOWN_AIR
         if fighter.input.move_x != 0:
@@ -63,4 +46,4 @@ class BaseCharacter(ABC):
     def get_hit_effect(self, attacker, target) -> HitEffect:
         if attacker.current_attack is None:
             raise ValueError("No current attack")
-        return attacker.current_attack.hit_effect_factory(attacker, target)
+        return attacker.current_attack.knockback_model.build_effect(attacker, target)

@@ -3,13 +3,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import pygame
-
-
-@dataclass
-class HitEffect:
-    vx: float
-    vy: float
-    hitstun: float
+from combat.knockback import KnockbackModel
 
 
 @dataclass
@@ -19,7 +13,7 @@ class AttackData:
     active_start: float
     active_end: float
     hitbox_factory: Callable[[object], pygame.Rect | None]
-    hit_effect_factory: Callable[[object, object], HitEffect]
+    knockback_model: KnockbackModel
     locks_horizontal_movement: bool = True
     dash_velocity_x: float = 0.0
     repeated_hit_interval: float | None = None

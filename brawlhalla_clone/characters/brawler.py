@@ -4,8 +4,9 @@ from __future__ import annotations
 import pygame
 
 from characters.base_character import BaseCharacter
-from characters.attack_data import AttackData, HitEffect
+from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
+from combat.knockback import FixedKnockback
 
 
 class BrawlerCharacter(BaseCharacter):
@@ -42,11 +43,7 @@ class BrawlerCharacter(BaseCharacter):
                 70 + (55 if f.ultimate_timer > 0.0 else 0),
                 90,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 380.0,
-                vy=-760.0,
-                hitstun=0.30,
-            ),
+            knockback_model=FixedKnockback(12.0, 260.0, -420.0, 0.20),
         )
 
     def _side(self) -> AttackData:
@@ -61,11 +58,7 @@ class BrawlerCharacter(BaseCharacter):
                 55 + (55 if f.ultimate_timer > 0.0 else 0),
                 36,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 180.0,
-                vy=-120.0,
-                hitstun=0.10,
-            ),
+            knockback_model=FixedKnockback(6.0, 170.0, -90.0, 0.10),
         )
 
     def _up(self) -> AttackData:
@@ -80,11 +73,7 @@ class BrawlerCharacter(BaseCharacter):
                 90 + (55 if f.ultimate_timer > 0.0 else 0),
                 60,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 320.0,
-                vy=-560.0,
-                hitstun=0.25,
-            ),
+            knockback_model=FixedKnockback(10.0, 180.0, -520.0, 0.18),
         )
 
     def _up_air(self) -> AttackData:
@@ -99,11 +88,7 @@ class BrawlerCharacter(BaseCharacter):
                 90 + (55 if f.ultimate_timer > 0.0 else 0),
                 70,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 220.0,
-                vy=-720.0,
-                hitstun=0.25,
-            ),
+            knockback_model=FixedKnockback(11.0, 140.0, -620.0, 0.20),
             locks_horizontal_movement=False,
             dash_velocity_x=220.0,
         )
@@ -120,11 +105,7 @@ class BrawlerCharacter(BaseCharacter):
                 90 + (55 if f.ultimate_timer > 0.0 else 0),
                 46,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 520.0,
-                vy=-420.0,
-                hitstun=0.25,
-            ),
+            knockback_model=FixedKnockback(10.0, 260.0, -220.0, 0.18),
             locks_horizontal_movement=False,
             dash_velocity_x=500.0,
         )
@@ -141,11 +122,7 @@ class BrawlerCharacter(BaseCharacter):
                 90 + (55 if f.ultimate_timer > 0.0 else 0),
                 46,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=a.facing * 280.0,
-                vy=520.0,
-                hitstun=0.25,
-            ),
+            knockback_model=FixedKnockback(11.0, 160.0, 320.0, 0.20),
             locks_horizontal_movement=False,
             dash_velocity_x=300.0,
         )

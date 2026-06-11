@@ -4,8 +4,9 @@ from __future__ import annotations
 import pygame
 
 from characters.base_character import BaseCharacter
-from characters.attack_data import AttackData, HitEffect
+from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
+from combat.knockback import FixedKnockback
 
 
 class GunnerCharacter(BaseCharacter):
@@ -44,7 +45,7 @@ class GunnerCharacter(BaseCharacter):
                 80,
                 26,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 220.0, 80.0, 0.10),
+            knockback_model=FixedKnockback(5.0, 120.0, 60.0, 0.08),
         )
 
     def _side(self) -> AttackData:
@@ -59,7 +60,7 @@ class GunnerCharacter(BaseCharacter):
                 140,
                 18,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(a.facing * 420.0, -50.0, 0.12),
+            knockback_model=FixedKnockback(6.0, 220.0, -40.0, 0.10),
         )
 
     def _up(self) -> AttackData:
@@ -74,7 +75,7 @@ class GunnerCharacter(BaseCharacter):
                 120,
                 60,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(0.0, -820.0, 0.16),
+            knockback_model=FixedKnockback(7.0, 0.0, -520.0, 0.12),
         )
 
     def _up_air(self) -> AttackData:
@@ -89,7 +90,7 @@ class GunnerCharacter(BaseCharacter):
                 120,
                 72,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(0.0, -920.0, 0.16),
+            knockback_model=FixedKnockback(8.0, 0.0, -620.0, 0.14),
         )
 
     def _down_ground(self) -> AttackData:
@@ -104,7 +105,7 @@ class GunnerCharacter(BaseCharacter):
                 120,
                 60,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(0.0, 900.0, 0.16),
+            knockback_model=FixedKnockback(7.0, 0.0, 560.0, 0.12),
         )
 
     def _down_air(self) -> AttackData:
@@ -119,7 +120,7 @@ class GunnerCharacter(BaseCharacter):
                 120,
                 72,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(0.0, 980.0, 0.16),
+            knockback_model=FixedKnockback(8.0, 0.0, 660.0, 0.14),
         )
 
     def _ultimate(self) -> AttackData:
@@ -134,11 +135,7 @@ class GunnerCharacter(BaseCharacter):
                 320,
                 320,
             ),
-            hit_effect_factory=lambda a, t: HitEffect(
-                vx=(1 if (t.pos.x - a.pos.x) > 0 else -1) * 420.0,
-                vy=-240.0,
-                hitstun=0.14,
-            ),
+            knockback_model=FixedKnockback(3.0, 180.0, -120.0, 0.08),
             locks_horizontal_movement=False,
             repeated_hit_interval=0.12,
         )

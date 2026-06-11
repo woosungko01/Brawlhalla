@@ -3,6 +3,7 @@ from __future__ import annotations
 from entities.entity import Entity
 from core.input_state import InputState
 from core.air_resources import AirResources
+from combat.damage_model import DamageState
 from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
@@ -17,6 +18,7 @@ class Fighter(Entity):
         self.facing = 1
         self.input = InputState()
         self.air = AirResources()
+        self.damage = DamageState()
 
         self.is_grounded = False
         self.was_grounded = False
@@ -42,7 +44,6 @@ class Fighter(Entity):
         self.dash_reuse_timer = 0.0
         self.left_ground_since_dash = True
 
-        # dodge
         self.is_dodging = False
         self.dodge_timer = 0.0
         self.dodge_dir_x = 0.0
@@ -52,7 +53,6 @@ class Fighter(Entity):
 
         self.character = character
 
-        # combat
         self.is_attacking = False
         self.current_attack = None
         self.attack_name: str | None = None
