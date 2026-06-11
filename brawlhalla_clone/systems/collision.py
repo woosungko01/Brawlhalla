@@ -159,6 +159,7 @@ def handle_landing(player: Player) -> None:
     player.is_wall_clinging = False
     player.was_wall_clinging = False
     player.wall_dir = 0
+    player.wall_detach_grace_timer = 0.0
 
 # ── 내부 헬퍼 ─────────────────────────────────────────────────────────────
 
@@ -209,31 +210,37 @@ def snap_to_ground(player: Player, platforms: List[Platform]) -> bool:
 
 def update_wall_cling(player: Player) -> None:
     """
-    wall cling은 '진입 후 유지' 상태로 본다.
-
-    진입:
-    - 공중 상태
-    - 벽 접촉 중
-    - 아래로 떨어지는 중(또는 거의 정지)
-
-    유지:
-    - 별도 해제 조건이 발생하기 전까지 유지
-    - 단, 실제 벽 접촉이 끊기면 자동 해제
+    wall cling은 한 번 진입하면 latch 상태로 유지된다.
+    - 입력 없이도 유지
+    - 실제 벽 접촉이 잠깐 끊겨도 grace 시간 동안 유지
+    - 해제는 별도 입력/상태 함수에서 처리
     """
-    # 이미 cling 중인데 벽 접촉이 끊겼으면 해제
     if player.is_wall_clinging:
-        if player.is_grounded or not player.touching_wall:
+        if player.is_grounded:
             player.is_wall_clinging = False
             player.wall_dir = 0
+            player.wall_detach_grace_timer = 0.0
+            return
+
+        if player.touching_wall:
+            player.wall_detach_grace_timer = player.gravity_cfg.WALL_DETACH_GRACE_TIME
+            return
+
+        if player.wall_detach_grace_timer > 0.0:
+            return
+
+        player.is_wall_clinging = False
+        player.wall_dir = 0
         return
 
-    # 새로 wall cling 진입
+    # 새 진입
     if (
         not player.is_grounded
         and player.touching_wall
         and player.vel.y >= 0.0
     ):
         player.is_wall_clinging = True
+        player.wall_detach_grace_timer = player.gravity_cfg.WALL_DETACH_GRACE_TIME
 
 def handle_wall_touch(player: Player) -> None:
     """
@@ -247,33 +254,35 @@ def handle_wall_touch(player: Player) -> None:
 
 
 def handle_wall_detach_inputs(player: Player) -> None:
-    """
-    wall cling 중 입력에 의해 벽에서 떨어지는 조건 처리.
-    """
     if not player.is_wall_clinging:
         return
 
     move_x = player.input.move_x
 
-    # 벽 반대 방향 입력
+    # 벽 반대 방향 입력이면 해제
     if move_x != 0 and move_x != player.wall_dir:
         player.is_wall_clinging = False
+        player.wall_detach_grace_timer = 0.0
         return
 
     # 아래 입력(패스트폴 의도)
     if player.input.down:
         player.is_wall_clinging = False
+        player.wall_detach_grace_timer = 0.0
         return
 
-    # 공격 / 대시 / 점프 입력도 wall cling 해제
+    # 점프 / 공격 / 대시도 해제
     if player.input.attack_pressed:
         player.is_wall_clinging = False
+        player.wall_detach_grace_timer = 0.0
         return
 
     if player.input.dodge_pressed:
         player.is_wall_clinging = False
+        player.wall_detach_grace_timer = 0.0
         return
 
     if player.input.jump_pressed:
         player.is_wall_clinging = False
+        player.wall_detach_grace_timer = 0.0
         return

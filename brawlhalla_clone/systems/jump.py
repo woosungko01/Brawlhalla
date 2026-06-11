@@ -64,19 +64,12 @@ def _do_jump(player: Player, kind: str) -> None:
     player.is_grounded = False
     player.fast_falling = False
 
-    # 점프 직후 아주 짧은 시간 동안 fast fall 금지
     player.fast_fall_lock_timer = player.jump_cfg.FAST_FALL_LOCK_TIME
 
-    # 점프 시 dash 관련 상태 정리
-    # dash jump는 active dash의 수평속도는 이미 vel.x에 남아 있으므로 유지됨
     if player.is_dashing:
         player.is_dashing = False
         player.dash_timer = 0.0
         player.dash_dir = 0
-
-    # startup 상태의 dash도 취소
-    player.dash_startup_timer = 0.0
-    player.dash_start_dir = 0
 
     if kind == "air":
         player.air.consume_jump()
@@ -84,3 +77,4 @@ def _do_jump(player: Player, kind: str) -> None:
     player.is_wall_clinging = False
     player.was_wall_clinging = False
     player.wall_dir = 0
+    player.wall_detach_grace_timer = 0.0

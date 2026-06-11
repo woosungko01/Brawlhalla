@@ -30,6 +30,7 @@ class Player:
         self.wall_dir = 0               # -1: 왼쪽 벽, 1: 오른쪽 벽, 0: 없음
         self.is_wall_clinging = False
         self.was_wall_clinging = False
+        self.wall_detach_grace_timer = 0.0
 
         self.fast_falling = False
 

@@ -38,6 +38,11 @@ def draw_debug_hud(surface: pygame.Surface, player: Player) -> None:
         f"land_rec   : {player.landing_recovery_timer:.3f}",
         f"dash_timer : {player.dash_timer:.3f}",
         f"dash_dir   : {player.dash_dir}",
+        "",
+        f"touch_wall  : {player.touching_wall}",
+        f"wall_cling  : {player.is_wall_clinging}",
+        f"wall_dir    : {player.wall_dir}",
+        f"wall_grace  : {player.wall_detach_grace_timer:.3f}",
     ]
 
     pad = 6

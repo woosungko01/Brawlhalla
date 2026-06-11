@@ -65,6 +65,9 @@ def tick_timers(player: Player, dt: float) -> None:
     if player.dodge_cooldown_timer > 0.0:
         player.dodge_cooldown_timer = max(0.0, player.dodge_cooldown_timer - dt)
 
+    if player.wall_detach_grace_timer > 0.0:
+        player.wall_detach_grace_timer = max(0.0, player.wall_detach_grace_timer - dt)
+
 
 def read_input(inp: InputState, events: list[pygame.event.Event]) -> None:
     inp.reset_frame_events()

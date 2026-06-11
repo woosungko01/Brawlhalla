@@ -51,6 +51,7 @@ class GravityConfig:
 
     # 벽에 붙어 있을 때 최대 미끄러짐 속도
     WALL_SLIDE_SPEED: float = 180.0
+    WALL_DETACH_GRACE_TIME: float = 0.06
 
 
 class DashConfig:
