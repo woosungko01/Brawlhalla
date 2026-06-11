@@ -1,5 +1,4 @@
 # main.py
-
 import sys
 import pygame
 
@@ -7,6 +6,9 @@ from core.player import Player
 from core.input_state import InputState
 from core.camera import Camera
 from core.dummy import Dummy
+
+from stages.stage import Stage
+from stages.test_stage import build_test_stage
 
 from systems.movement import apply_horizontal_control
 from systems.jump import try_request_jump, execute_pending_jump
@@ -17,7 +19,6 @@ from systems.dash import (
     update_dash,
 )
 from systems.collision import (
-    Platform,
     move_and_collide,
     update_grounded,
     handle_landing,
@@ -32,13 +33,10 @@ from systems.combat import (
     get_attack_hitbox,
     update_dummy,
 )
-
 from utils.debug_hud import draw_debug_hud
 
 
 SCREEN_W, SCREEN_H = 1280, 720
-WORLD_W, WORLD_H = 3200, 1800
-
 FPS = 60
 TITLE = "Brawlhalla 이동 + 2캐릭터 공격 프로토타입"
 
@@ -48,26 +46,6 @@ PLATFORM_COLOR = (80, 200, 120)
 WORLD_BORDER_COLOR = (90, 90, 120)
 DUMMY_COLOR = (230, 120, 120)
 HITBOX_COLOR = (255, 220, 80)
-
-
-def build_platforms() -> list[Platform]:
-    return [
-        Platform(0, 1760, 3200, 40),
-        Platform(150, 1500, 250, 20),
-        Platform(450, 1380, 220, 20),
-        Platform(120, 1220, 180, 20),
-        Platform(700, 1450, 300, 20),
-        Platform(1100, 1300, 260, 20),
-        Platform(900, 1120, 220, 20),
-        Platform(1400, 980, 250, 20),
-        Platform(1900, 1500, 280, 20),
-        Platform(2300, 1360, 240, 20),
-        Platform(2600, 1200, 220, 20),
-        Platform(2900, 1020, 180, 20),
-        Platform(1650, 1600, 180, 20),
-        Platform(2100, 1180, 160, 20),
-        Platform(2500, 900, 150, 20),
-    ]
 
 
 def tick_timers(player: Player, dt: float) -> None:
@@ -114,7 +92,7 @@ def read_input(inp: InputState, events: list[pygame.event.Event]) -> None:
                 inp.jump_released = True
 
 
-def update_player(player: Player, dummy: Dummy, dt: float, platforms: list[Platform]) -> None:
+def update_player(player: Player, dummy: Dummy, dt: float, stage: Stage) -> None:
     player.was_grounded = player.is_grounded
 
     if not player.is_grounded:
@@ -132,7 +110,7 @@ def update_player(player: Player, dummy: Dummy, dt: float, platforms: list[Platf
 
     if player.input.dodge_pressed and not player.is_attacking and player.stun_timer <= 0.0:
         if not player.is_grounded and player.near_ground:
-            snap_to_ground(player, platforms)
+            snap_to_ground(player, stage.platforms)
         try_request_dash(player)
 
     if player.input.jump_pressed and not player.is_attacking and player.stun_timer <= 0.0:
@@ -148,8 +126,8 @@ def update_player(player: Player, dummy: Dummy, dt: float, platforms: list[Platf
         apply_horizontal_control(player, dt)
 
     apply_vertical_forces(player, dt)
-    move_and_collide(player, dt, platforms)
-    update_grounded(player, platforms)
+    move_and_collide(player, dt, stage.platforms)
+    update_grounded(player, stage.platforms)
     handle_landing(player)
     update_move_state(player)
 
@@ -158,7 +136,7 @@ def draw(
     surface: pygame.Surface,
     player: Player,
     dummy: Dummy,
-    platforms: list[Platform],
+    stage: Stage,
     camera: Camera,
     show_hud: bool,
     font: pygame.font.Font,
@@ -168,12 +146,12 @@ def draw(
     world_rect = pygame.Rect(
         int(-camera.x),
         int(-camera.y),
-        WORLD_W,
-        WORLD_H,
+        stage.world_w,
+        stage.world_h,
     )
     pygame.draw.rect(surface, WORLD_BORDER_COLOR, world_rect, 3)
 
-    for plat in platforms:
+    for plat in stage.platforms:
         rect = pygame.Rect(
             int(plat.x - camera.x),
             int(plat.y - camera.y),
@@ -216,9 +194,11 @@ def draw(
         ),
     )
 
+    # 캐릭터 표시
     char_surf = font.render(player.character_id, True, (255, 255, 255))
     surface.blit(char_surf, (20, 20))
 
+    # 공격 hitbox 표시
     attack_hitbox = get_attack_hitbox(player)
     if attack_hitbox is not None:
         hb = pygame.Rect(
@@ -246,16 +226,17 @@ def main() -> None:
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("monospace", 13)
 
+    stage = build_test_stage()
+
     player = Player()
     player.input = InputState()
-    player.pos.x = 300.0
-    player.pos.y = 1400.0
+    player.pos.x = stage.player_spawn_x
+    player.pos.y = stage.player_spawn_y
     player.character_id = "brawler"
 
-    platforms = build_platforms()
-    dummy = Dummy(WORLD_W / 2, 1760 - 40 - 36)
+    dummy = Dummy(stage.dummy_spawn_x, stage.dummy_spawn_y)
 
-    camera = Camera(SCREEN_W, SCREEN_H, WORLD_W, WORLD_H)
+    camera = Camera(SCREEN_W, SCREEN_H, stage.world_w, stage.world_h)
     camera.update(player.pos.x, player.pos.y)
 
     show_hud = True
@@ -277,10 +258,10 @@ def main() -> None:
                 if event.key == pygame.K_r:
                     player = Player()
                     player.input = InputState()
-                    player.pos.x = 300.0
-                    player.pos.y = 1400.0
+                    player.pos.x = stage.player_spawn_x
+                    player.pos.y = stage.player_spawn_y
                     player.character_id = "brawler"
-                    dummy = Dummy(WORLD_W / 2, 1760 - 40 - 36)
+                    dummy = Dummy(stage.dummy_spawn_x, stage.dummy_spawn_y)
 
                 # 캐릭터 전환 테스트
                 if event.key == pygame.K_1:
@@ -289,11 +270,11 @@ def main() -> None:
                     player.character_id = "swordsman"
 
         read_input(player.input, events)
-        update_player(player, dummy, dt, platforms)
-        update_dummy(dummy, dt, 1760.0)
+        update_player(player, dummy, dt, stage)
+        update_dummy(dummy, dt, stage.platforms[0].y)
 
         camera.update(player.pos.x, player.pos.y)
-        draw(screen, player, dummy, platforms, camera, show_hud, font)
+        draw(screen, player, dummy, stage, camera, show_hud, font)
 
 
 if __name__ == "__main__":
