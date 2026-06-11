@@ -43,7 +43,7 @@ class GravityConfig:
     GRAVITY: float = 3000.0
     MAX_FALL_SPEED: float = 700.0
 
-    FAST_FALL_ACCEL_BONUS: float = 5000.0
+    FAST_FALL_ACCEL_BONUS: float = 4200.0
     FAST_FALL_TERMINAL_SPEED: float = 1100.0
 
     # 벽에 붙어 있을 때 최대 미끄러짐 속도
