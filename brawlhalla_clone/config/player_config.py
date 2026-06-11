@@ -25,7 +25,7 @@ class JumpConfig:
     """점프 관련 수치"""
 
     # 점프력 (pixels/sec, 위 방향이 음수)
-    JUMP_SPEED: float = 1200.0
+    JUMP_SPEED: float = 1100.0
 
     # 다중 점프 횟수 (지상 점프 제외, 순수 공중 추가 점프 수)
     MAX_AIR_JUMPS: int = 2
@@ -44,16 +44,16 @@ class GravityConfig:
     """중력 / 낙하 관련 수치"""
 
     # 기본 중력 가속도 (pixels/sec²)
-    GRAVITY: float = 3600.0
+    GRAVITY: float = 3000.0
 
     # 일반 낙하 최대 속도 (pixels/sec)
-    MAX_FALL_SPEED: float = 1100.0
+    MAX_FALL_SPEED: float = 700.0
 
     # 패스트폴
     # 아래 입력 시 추가 중력을 더 크게 주되,
     # 종단속도(최대 낙하속도)는 별도로 제한한다.
-    FAST_FALL_ACCEL_BONUS: float = 6000.0
-    FAST_FALL_TERMINAL_SPEED: float = 1300.0
+    FAST_FALL_ACCEL_BONUS: float = 5000.0
+    FAST_FALL_TERMINAL_SPEED: float = 1100.0
 
 
 class DashConfig:
