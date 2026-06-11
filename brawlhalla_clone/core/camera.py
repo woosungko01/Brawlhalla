@@ -23,7 +23,7 @@ class Camera:
         target(보통 플레이어 중심)를 향해 부드럽게 이동.
         """
         desired_x = target_x - self.screen_w / 2
-        desired_y = target_y - self.screen_h / 2
+        desired_y = (target_y - 40) - self.screen_h / 2
 
         self.x += (desired_x - self.x) * self.follow_x
         self.y += (desired_y - self.y) * self.follow_y
