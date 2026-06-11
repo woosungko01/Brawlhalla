@@ -52,6 +52,7 @@ class Fighter(Entity):
 
         self.character = character
 
+        # combat
         self.is_attacking = False
         self.current_attack = None
         self.attack_name: str | None = None
@@ -62,6 +63,7 @@ class Fighter(Entity):
         self.attack_tick_timer = 0.0
 
         self.stun_timer = 0.0
+        self.hitstun_timer = 0.0
         self.ultimate_timer = 0.0
         self.ultimate_ready = True
 

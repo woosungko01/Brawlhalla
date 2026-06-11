@@ -1,21 +1,30 @@
+# characters/gunner.py
+
 from __future__ import annotations
 import pygame
 
 from characters.base_character import BaseCharacter
 from characters.attack_data import AttackData, HitEffect
+from characters.attack_slots import AttackSlot
 
 
 class GunnerCharacter(BaseCharacter):
     character_id = "gunner"
 
-    def resolve_basic_attack(self, fighter) -> AttackData | None:
-        if fighter.input.up:
-            return self._up_shot()
-        elif fighter.input.down:
-            return self._down_shot()
-        elif fighter.input.move_x != 0:
-            return self._side_shot()
-        return self._low_shot()
+    def get_attack_for_slot(self, slot: AttackSlot) -> AttackData | None:
+        if slot == AttackSlot.NEUTRAL:
+            return self._neutral()
+        if slot == AttackSlot.SIDE:
+            return self._side()
+        if slot == AttackSlot.UP:
+            return self._up()
+        if slot == AttackSlot.UP_AIR:
+            return self._up_air()
+        if slot == AttackSlot.DOWN_GROUND:
+            return self._down_ground()
+        if slot == AttackSlot.DOWN_AIR:
+            return self._down_air()
+        return None
 
     def try_start_ultimate(self, fighter) -> bool:
         atk = self._ultimate()
@@ -23,9 +32,9 @@ class GunnerCharacter(BaseCharacter):
         fighter.attack_tick_timer = 0.0
         return True
 
-    def _low_shot(self) -> AttackData:
+    def _neutral(self) -> AttackData:
         return AttackData(
-            name="gunner_low_shot",
+            name=AttackSlot.NEUTRAL.value,
             total_time=0.14,
             active_start=0.03,
             active_end=0.08,
@@ -38,9 +47,9 @@ class GunnerCharacter(BaseCharacter):
             hit_effect_factory=lambda a, t: HitEffect(a.facing * 220.0, 80.0, 0.10),
         )
 
-    def _side_shot(self) -> AttackData:
+    def _side(self) -> AttackData:
         return AttackData(
-            name="gunner_side_shot",
+            name=AttackSlot.SIDE.value,
             total_time=0.12,
             active_start=0.02,
             active_end=0.06,
@@ -53,9 +62,9 @@ class GunnerCharacter(BaseCharacter):
             hit_effect_factory=lambda a, t: HitEffect(a.facing * 420.0, -50.0, 0.12),
         )
 
-    def _up_shot(self) -> AttackData:
+    def _up(self) -> AttackData:
         return AttackData(
-            name="gunner_up_shot",
+            name=AttackSlot.UP.value,
             total_time=0.14,
             active_start=0.03,
             active_end=0.08,
@@ -68,9 +77,24 @@ class GunnerCharacter(BaseCharacter):
             hit_effect_factory=lambda a, t: HitEffect(0.0, -820.0, 0.16),
         )
 
-    def _down_shot(self) -> AttackData:
+    def _up_air(self) -> AttackData:
         return AttackData(
-            name="gunner_down_shot",
+            name=AttackSlot.UP_AIR.value,
+            total_time=0.14,
+            active_start=0.03,
+            active_end=0.08,
+            hitbox_factory=lambda f: pygame.Rect(
+                int(f.pos.x - 60),
+                int(f.pos.y - 118),
+                120,
+                72,
+            ),
+            hit_effect_factory=lambda a, t: HitEffect(0.0, -920.0, 0.16),
+        )
+
+    def _down_ground(self) -> AttackData:
+        return AttackData(
+            name=AttackSlot.DOWN_GROUND.value,
             total_time=0.14,
             active_start=0.03,
             active_end=0.08,
@@ -83,9 +107,24 @@ class GunnerCharacter(BaseCharacter):
             hit_effect_factory=lambda a, t: HitEffect(0.0, 900.0, 0.16),
         )
 
+    def _down_air(self) -> AttackData:
+        return AttackData(
+            name=AttackSlot.DOWN_AIR.value,
+            total_time=0.14,
+            active_start=0.03,
+            active_end=0.08,
+            hitbox_factory=lambda f: pygame.Rect(
+                int(f.pos.x - 60),
+                int(f.pos.y + 28),
+                120,
+                72,
+            ),
+            hit_effect_factory=lambda a, t: HitEffect(0.0, 980.0, 0.16),
+        )
+
     def _ultimate(self) -> AttackData:
         return AttackData(
-            name="gunner_ultimate",
+            name=AttackSlot.ULTIMATE.value,
             total_time=4.0,
             active_start=0.0,
             active_end=4.0,

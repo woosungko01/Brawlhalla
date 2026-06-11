@@ -43,6 +43,7 @@ from systems.dodge import (
     cancel_dodge,
 )
 
+
 class TrainingMatch:
     def __init__(self, screen_w: int, screen_h: int) -> None:
         self.stage = build_test_stage()
@@ -68,7 +69,6 @@ class TrainingMatch:
             self.characters["brawler"],
         )
 
-        # 시작 프레임에서 바닥 판정 먼저 맞춤
         update_grounded(self.player, self.stage.platforms)
         update_grounded(self.dummy, self.stage.platforms)
 
@@ -120,7 +120,6 @@ class TrainingMatch:
         self.tick_timers(fighter, dt)
         tick_dash_timers(fighter, dt)
         tick_combat_timers(fighter, dt)
-
         tick_dodge_timers(fighter, dt)
 
         if fighter.input.ultimate_pressed:
@@ -135,6 +134,9 @@ class TrainingMatch:
         if (
             fighter.is_grounded
             and fighter.input.down
+            and fighter.drop_through_timer <= 0.0
+            and not fighter.is_dodging
+            and not fighter.is_dashing
             and is_standing_on_soft_platform(fighter, self.stage.platforms)
         ):
             fighter.drop_through_timer = 0.18
@@ -145,18 +147,14 @@ class TrainingMatch:
         if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0:
             dodge_started = try_request_dodge(fighter)
 
-            # dodge가 시작되지 않았고,
-            # 지상 + 방향 입력이 있을 때만 dash 판정
-            if (
-                    not dodge_started
-                    and not fighter.is_attacking
-            ):
+            # dodge가 시작되지 않았을 때만 dash/snap dash 시도
+            if not dodge_started and not fighter.is_attacking:
                 if (
-                        not fighter.is_grounded
-                        and fighter.input.down
-                        and fighter.fast_fall_lock_timer <= 0.0
-                        and fighter.vel.y >= 0.0
-                        and fighter.near_ground
+                    not fighter.is_grounded
+                    and fighter.input.down
+                    and fighter.fast_fall_lock_timer <= 0.0
+                    and fighter.vel.y >= 0.0
+                    and fighter.near_ground
                 ):
                     snap_to_ground(fighter, self.stage.platforms)
 
@@ -196,10 +194,10 @@ class TrainingMatch:
         d = self.dummy
         d.was_grounded = d.is_grounded
 
-        tick_combat_timers(d, dt)
         self.tick_timers(d, dt)
+        tick_combat_timers(d, dt)
+        tick_dodge_timers(d, dt)
 
-        # 더미는 스스로 행동하지 않음
         d.input.reset_frame_events()
         d.input.left = False
         d.input.right = False
@@ -210,15 +208,17 @@ class TrainingMatch:
         d.input.attack = False
         d.input.ultimate = False
 
-        # hitstun 중엔 입력 이동 없음
-        if abs(d.vel.x) > 0.0:
-            if d.is_grounded:
-                d.vel.x *= 0.86
-            else:
-                d.vel.x *= 0.98
+        if d.is_dodging:
+            update_dodge(d, dt)
+        else:
+            if abs(d.vel.x) > 0.0:
+                if d.is_grounded:
+                    d.vel.x *= 0.86
+                else:
+                    d.vel.x *= 0.98
 
-            if abs(d.vel.x) < 5.0:
-                d.vel.x = 0.0
+                if abs(d.vel.x) < 5.0:
+                    d.vel.x = 0.0
 
         apply_vertical_forces(d, dt)
         move_and_collide(d, dt, self.stage.platforms)
@@ -237,7 +237,10 @@ class TrainingMatch:
     def draw(self, surface: pygame.Surface, font: pygame.font.Font, draw_debug_hud_fn) -> None:
         BG_COLOR = (30, 30, 45)
         PLAYER_COLOR = (100, 180, 255)
-        PLATFORM_COLOR = (80, 200, 120)
+        HARD_PLATFORM_COLOR = (80, 200, 120)
+        HARD_PLATFORM_BORDER = (60, 160, 90)
+        SOFT_PLATFORM_COLOR = (220, 190, 90)
+        SOFT_PLATFORM_BORDER = (180, 145, 60)
         WORLD_BORDER_COLOR = (90, 90, 120)
         DUMMY_COLOR = (230, 120, 120)
         HITBOX_COLOR = (255, 220, 80)
@@ -259,8 +262,13 @@ class TrainingMatch:
                 int(plat.width),
                 int(plat.height),
             )
-            pygame.draw.rect(surface, PLATFORM_COLOR, rect)
-            pygame.draw.rect(surface, (60, 160, 90), rect, 2)
+
+            if getattr(plat, "is_soft", False):
+                pygame.draw.rect(surface, SOFT_PLATFORM_COLOR, rect)
+                pygame.draw.rect(surface, SOFT_PLATFORM_BORDER, rect, 2)
+            else:
+                pygame.draw.rect(surface, HARD_PLATFORM_COLOR, rect)
+                pygame.draw.rect(surface, HARD_PLATFORM_BORDER, rect, 2)
 
         for fighter, color, border in (
             (self.player, PLAYER_COLOR, (60, 140, 220)),

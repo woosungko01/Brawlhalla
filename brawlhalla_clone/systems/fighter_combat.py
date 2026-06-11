@@ -57,7 +57,7 @@ def get_attack_hitbox(fighter):
         return None
 
     if (
-        fighter.current_attack.name not in ("sword_ultimate", "gunner_ultimate")
+        fighter.current_attack.name != "ultimate"
         and not is_attack_active(fighter)
     ):
         return None
