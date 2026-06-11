@@ -1,11 +1,12 @@
 # systems/gravity.py
-#
-# 중력 + 패스트폴 처리.
 
 from entities.fighter import Fighter
 
 
 def apply_vertical_forces(fighter: Fighter, dt: float) -> None:
+    if fighter.is_dodging:
+        return
+
     if fighter.is_grounded:
         if fighter.vel.y > 0:
             fighter.vel.y = 0.0

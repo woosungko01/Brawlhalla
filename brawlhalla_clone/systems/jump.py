@@ -5,6 +5,9 @@ from entities.fighter import Fighter
 
 def can_request_jump(fighter: Fighter) -> bool:
     """현재 점프를 예약할 수 있는가"""
+    if fighter.is_dodging:
+        return False
+
     if fighter.landing_recovery_timer > 0.0:
         return False
 

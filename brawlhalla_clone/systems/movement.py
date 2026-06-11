@@ -4,7 +4,6 @@ from entities.fighter import Fighter
 
 
 def _move_toward(value: float, target: float, max_delta: float) -> float:
-    """value를 target 방향으로 최대 max_delta만큼 이동"""
     if value < target:
         return min(value + max_delta, target)
     elif value > target:
@@ -13,10 +12,9 @@ def _move_toward(value: float, target: float, max_delta: float) -> float:
 
 
 def apply_horizontal_control(fighter: Fighter, dt: float) -> None:
-    """
-    좌우 입력에 따라 vel.x를 갱신.
-    대시 시스템이 활성화 중이면 호출하지 않는다.
-    """
+    if fighter.is_dodging:
+        return
+
     cfg = fighter.move_cfg
     move_x = fighter.input.move_x
 

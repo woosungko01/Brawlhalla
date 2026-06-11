@@ -36,7 +36,12 @@ from systems.fighter_combat import (
     update_attack,
     get_attack_hitbox,
 )
-
+from systems.dodge import (
+    tick_dodge_timers,
+    try_request_dodge,
+    update_dodge,
+    cancel_dodge,
+)
 
 class TrainingMatch:
     def __init__(self, screen_w: int, screen_h: int) -> None:
@@ -119,10 +124,14 @@ class TrainingMatch:
         tick_dash_timers(fighter, dt)
         tick_combat_timers(fighter, dt)
 
+        tick_dodge_timers(fighter, dt)
+
         if fighter.input.ultimate_pressed:
             try_start_ultimate(fighter)
 
         if fighter.input.attack_pressed:
+            if fighter.is_dodging:
+                cancel_dodge(fighter)
             try_start_attack(fighter)
 
         # soft platform 위에서 아래 입력 시 drop-through
@@ -136,19 +145,25 @@ class TrainingMatch:
             if fighter.vel.y < 60.0:
                 fighter.vel.y = 60.0
 
-        if fighter.input.dodge_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:
-            # snap dash 조건:
-            # - 공중
-            # - fast fall 중
-            # - 지면 근처
-            if (
-                    not fighter.is_grounded
-                    and fighter.fast_falling
-                    and fighter.near_ground
-            ):
-                snap_to_ground(fighter, self.stage.platforms)
+        if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0:
+            dodge_started = try_request_dodge(fighter)
 
-            try_request_dash(fighter)
+            # dodge가 시작되지 않았고,
+            # 지상 + 방향 입력이 있을 때만 dash 판정
+            if (
+                    not dodge_started
+                    and not fighter.is_attacking
+            ):
+                if (
+                        not fighter.is_grounded
+                        and fighter.input.down
+                        and fighter.fast_fall_lock_timer <= 0.0
+                        and fighter.vel.y >= 0.0
+                        and fighter.near_ground
+                ):
+                    snap_to_ground(fighter, self.stage.platforms)
+
+                try_request_dash(fighter)
 
         if fighter.input.jump_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:
             try_request_jump(fighter)
@@ -157,6 +172,8 @@ class TrainingMatch:
 
         if fighter.is_attacking:
             update_attack(fighter, targets, dt)
+        elif fighter.is_dodging:
+            update_dodge(fighter, dt)
         elif fighter.is_dashing:
             update_dash(fighter, dt)
         else:

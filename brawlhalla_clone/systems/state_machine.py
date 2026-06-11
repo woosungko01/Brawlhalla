@@ -4,7 +4,9 @@ from entities.fighter import Fighter
 
 
 def update_move_state(fighter: Fighter) -> None:
-    if fighter.is_dashing:
+    if fighter.is_dodging:
+        fighter.move_state = "dodge"
+    elif fighter.is_dashing:
         fighter.move_state = "dashing"
     elif fighter.jump_startup_timer > 0:
         fighter.move_state = "jump_startup"

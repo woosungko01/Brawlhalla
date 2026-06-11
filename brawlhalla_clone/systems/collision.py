@@ -193,6 +193,8 @@ def handle_landing(fighter: Fighter) -> None:
     fighter.dash_timer = 0.0
     fighter.dash_dir = 0
 
+    fighter.air_dodge_available = True
+
     fighter.is_wall_clinging = False
     fighter.was_wall_clinging = False
     fighter.wall_dir = 0
@@ -272,6 +274,10 @@ def update_wall_cling(fighter: Fighter) -> None:
 def handle_wall_touch(fighter: Fighter) -> None:
     if not fighter.was_wall_clinging and fighter.is_wall_clinging:
         fighter.air.reset()
+
+    if not fighter.was_wall_clinging and fighter.is_wall_clinging:
+        fighter.air.reset()
+        fighter.air_dodge_available = True
 
     fighter.was_wall_clinging = fighter.is_wall_clinging
 

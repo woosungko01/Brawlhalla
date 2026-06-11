@@ -7,8 +7,9 @@ from core.input_state import InputState
 from core.air_resources import AirResources
 from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
-    GravityConfig, DashConfig,
+    GravityConfig, DashConfig, DodgeConfig,
 )
+
 
 
 class Fighter(Entity):
@@ -25,6 +26,14 @@ class Fighter(Entity):
         self.touching_wall = False
         self.touching_ceiling = False
         self.near_ground = False
+
+        self.is_dodging = False
+        self.dodge_timer = 0.0
+        self.dodge_dir_x = 0.0
+        self.dodge_dir_y = 0.0
+        self.dodge_kind: str | None = None
+
+        self.air_dodge_available = True
 
         self.wall_dir = 0
         self.is_wall_clinging = False

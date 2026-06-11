@@ -81,3 +81,18 @@ class PlayerConfig:
 
     SPAWN_X: float = 400.0
     SPAWN_Y: float = 200.0
+
+
+class DodgeConfig:
+    """회피(dodge) 관련 수치"""
+
+    # 지상/공중 spot dodge 지속
+    SPOT_DODGE_TIME: float = 0.22
+    SPOT_DODGE_INVULN_TIME: float = 0.22
+
+    # 공중 방향 dodge 지속
+    AIR_DODGE_TIME: float = 0.20
+    AIR_DODGE_INVULN_TIME: float = 0.20
+
+    # 공중 방향 dodge 고정 이동 속도
+    AIR_DODGE_SPEED: float = 780.0
