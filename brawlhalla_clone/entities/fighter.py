@@ -1,3 +1,5 @@
+# entities/fighter.py
+
 from __future__ import annotations
 
 from entities.entity import Entity
@@ -43,6 +45,8 @@ class Fighter(Entity):
         self.dash_reuse_timer = 0.0
         self.left_ground_since_dash = True
 
+        self.air = AirResources()
+
         self.character = character
 
         self.is_attacking = False
@@ -66,6 +70,9 @@ class Fighter(Entity):
         self.dodge_cooldown_timer = 0.0
         self.invuln_timer = 0.0
         self.can_attack = True
+
+        # soft platform drop-through
+        self.drop_through_timer = 0.0
 
     def start_attack(self, attack_data) -> None:
         self.is_attacking = True

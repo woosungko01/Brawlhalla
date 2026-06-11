@@ -8,13 +8,11 @@ def build_test_stage() -> Stage:
     world_w = 2400
     world_h = 1400
 
-    # 메인 플랫폼
-    main_x = 700
+    main_x = 600
     main_y = 900
-    main_w = 1000
+    main_w = 1200
     main_h = 260
 
-    # 위쪽 소형 플랫폼 2개
     soft_w = 220
     soft_h = 20
     soft_y = 620
@@ -40,11 +38,9 @@ def build_test_stage() -> Stage:
         dummy_spawn_y=dummy_spawn_y,
 
         platforms=[
-            # 메인 플랫폼
-            Platform(main_x, main_y, main_w, main_h),
+            Platform(main_x, main_y, main_w, main_h, is_soft=False),
 
-            # 위 소형 플랫폼 2개
-            Platform(left_soft_x, soft_y, soft_w, soft_h),
-            Platform(right_soft_x, soft_y, soft_w, soft_h),
+            Platform(left_soft_x, soft_y, soft_w, soft_h, is_soft=True),
+            Platform(right_soft_x, soft_y, soft_w, soft_h, is_soft=True),
         ],
     )

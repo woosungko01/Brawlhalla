@@ -26,6 +26,7 @@ from systems.collision import (
     update_wall_cling,
     handle_wall_touch,
     handle_wall_detach_inputs,
+    is_standing_on_soft_platform,
 )
 from systems.state_machine import update_move_state
 from systems.fighter_combat import (
@@ -105,6 +106,9 @@ class TrainingMatch:
         if fighter.wall_detach_grace_timer > 0.0:
             fighter.wall_detach_grace_timer = max(0.0, fighter.wall_detach_grace_timer - dt)
 
+        if fighter.drop_through_timer > 0.0:
+            fighter.drop_through_timer = max(0.0, fighter.drop_through_timer - dt)
+
     def update_fighter(self, fighter, targets: list, dt: float) -> None:
         fighter.was_grounded = fighter.is_grounded
 
@@ -120,6 +124,17 @@ class TrainingMatch:
 
         if fighter.input.attack_pressed:
             try_start_attack(fighter)
+
+        # soft platform 위에서 아래 입력 시 drop-through
+        if (
+            fighter.is_grounded
+            and fighter.input.down
+            and is_standing_on_soft_platform(fighter, self.stage.platforms)
+        ):
+            fighter.drop_through_timer = 0.18
+            fighter.is_grounded = False
+            if fighter.vel.y < 60.0:
+                fighter.vel.y = 60.0
 
         if fighter.input.dodge_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:
             # snap dash 조건:

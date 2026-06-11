@@ -1,13 +1,4 @@
 # systems/collision.py
-#
-# 충돌 감지 + grounded 판정 + 착지 이벤트.
-#
-# 설계 포인트:
-# - 이동과 충돌 해결은 move_and_collide()가 담당
-# - grounded 판정은 "충돌 결과"가 아니라 발 아래 probe 검사로 유지
-# - 착지 순간에는 공중 자원 리셋, landing recovery 시작
-# - 안전장치로 착지 시 대시 상태도 종료
-# - 벽/천장 접촉 상태를 fighter에 반영
 
 from __future__ import annotations
 from dataclasses import dataclass
@@ -20,11 +11,11 @@ from entities.fighter import Fighter
 
 @dataclass
 class Platform:
-    """사각형 플랫폼 데이터"""
     x: float
     y: float
     width: float
     height: float
+    is_soft: bool = False
 
     @property
     def rect(self) -> pygame.Rect:
@@ -55,11 +46,18 @@ def move_and_collide(
     fighter.touching_ceiling = False
     fighter.wall_dir = 0
 
-    # 수평 이동
+    prev_x = fighter.pos.x
+    prev_y = fighter.pos.y
+    prev_bottom = fighter.bottom
+
+    # ── 수평 이동 ──
     fighter.pos.x += fighter.vel.x * dt
     p_rect = _fighter_rect(fighter)
 
     for platform in platforms:
+        if platform.is_soft:
+            continue  # soft platform은 옆면 충돌 없음
+
         plat = platform.rect
         if not p_rect.colliderect(plat):
             continue
@@ -77,12 +75,28 @@ def move_and_collide(
         fighter.touching_wall = True
         p_rect = _fighter_rect(fighter)
 
-    # 수직 이동
+    # ── 수직 이동 ──
     fighter.pos.y += fighter.vel.y * dt
     p_rect = _fighter_rect(fighter)
+    current_bottom = fighter.bottom
+    current_top = fighter.top
 
     for platform in platforms:
         plat = platform.rect
+
+        if platform.is_soft:
+            if _should_land_on_soft_platform(
+                fighter,
+                platform,
+                prev_bottom,
+                current_bottom,
+            ):
+                fighter.pos.y = plat.top - fighter.height / 2
+                fighter.vel.y = 0.0
+                result.on_ground = True
+                p_rect = _fighter_rect(fighter)
+            continue
+
         if not p_rect.colliderect(plat):
             continue
 
@@ -100,12 +114,37 @@ def move_and_collide(
     return result
 
 
+def _should_land_on_soft_platform(
+    fighter: Fighter,
+    platform: Platform,
+    prev_bottom: float,
+    current_bottom: float,
+) -> bool:
+    if fighter.drop_through_timer > 0.0:
+        return False
+
+    if fighter.vel.y < 0.0:
+        return False
+
+    plat = platform.rect
+
+    # 수평으로 겹쳐야 함
+    foot_left = fighter.left + 2
+    foot_right = fighter.right - 2
+    if foot_right <= plat.left or foot_left >= plat.right:
+        return False
+
+    # 이전 프레임 발은 플랫폼 위쪽, 현재 발은 플랫폼 top을 지나거나 닿아야 함
+    if prev_bottom > plat.top:
+        return False
+
+    if current_bottom < plat.top:
+        return False
+
+    return True
+
+
 def update_grounded(fighter: Fighter, platforms: List[Platform]) -> None:
-    """
-    grounded와 near_ground를 동시에 갱신.
-    - grounded: 발 바로 아래 짧은 probe
-    - near_ground: 발 아래 좀 더 긴 probe (dash snap 용)
-    """
     GROUND_PROBE_PX = 3
     near_ground_px = int(fighter.dash_cfg.GROUND_SNAP_DIST)
 
@@ -124,12 +163,20 @@ def update_grounded(fighter: Fighter, platforms: List[Platform]) -> None:
     )
 
     fighter.is_grounded = any(
-        grounded_probe.colliderect(platform.rect) for platform in platforms
+        _probe_hits_platform(fighter, grounded_probe, platform)
+        for platform in platforms
     )
 
     fighter.near_ground = any(
-        near_ground_probe.colliderect(platform.rect) for platform in platforms
+        _probe_hits_platform(fighter, near_ground_probe, platform)
+        for platform in platforms
     )
+
+
+def _probe_hits_platform(fighter: Fighter, probe: pygame.Rect, platform: Platform) -> bool:
+    if platform.is_soft and fighter.drop_through_timer > 0.0:
+        return False
+    return probe.colliderect(platform.rect)
 
 
 def handle_landing(fighter: Fighter) -> None:
@@ -162,15 +209,14 @@ def _fighter_rect(fighter: Fighter) -> pygame.Rect:
 
 
 def snap_to_ground(fighter: Fighter, platforms: List[Platform]) -> bool:
-    """
-    fighter가 near_ground 상태일 때 가장 가까운 아래 플랫폼 위로 붙인다.
-    성공하면 True.
-    """
     best_top = None
     foot_x1 = fighter.left + 2
     foot_x2 = fighter.right - 2
 
     for platform in platforms:
+        if platform.is_soft and fighter.drop_through_timer > 0.0:
+            continue
+
         plat = platform.rect
 
         if foot_x2 <= plat.left or foot_x1 >= plat.right:
@@ -196,12 +242,6 @@ def snap_to_ground(fighter: Fighter, platforms: List[Platform]) -> bool:
 
 
 def update_wall_cling(fighter: Fighter) -> None:
-    """
-    wall cling은 한 번 진입하면 latch 상태로 유지된다.
-    - 입력 없이도 유지
-    - 실제 벽 접촉이 잠깐 끊겨도 grace 시간 동안 유지
-    - 해제는 별도 입력/상태 함수에서 처리
-    """
     if fighter.is_wall_clinging:
         if fighter.is_grounded:
             fighter.is_wall_clinging = False
@@ -230,10 +270,6 @@ def update_wall_cling(fighter: Fighter) -> None:
 
 
 def handle_wall_touch(fighter: Fighter) -> None:
-    """
-    wall cling 상태에 새로 진입한 순간 한 번만 실행.
-    air resources를 회복한다.
-    """
     if not fighter.was_wall_clinging and fighter.is_wall_clinging:
         fighter.air.reset()
 
@@ -270,3 +306,20 @@ def handle_wall_detach_inputs(fighter: Fighter) -> None:
         fighter.is_wall_clinging = False
         fighter.wall_detach_grace_timer = 0.0
         return
+
+
+def is_standing_on_soft_platform(fighter: Fighter, platforms: List[Platform]) -> bool:
+    probe = pygame.Rect(
+        int(fighter.rect_x) + 2,
+        int(fighter.bottom),
+        max(1, fighter.width - 4),
+        4,
+    )
+
+    for platform in platforms:
+        if not platform.is_soft:
+            continue
+        if probe.colliderect(platform.rect):
+            return True
+
+    return False
