@@ -10,6 +10,7 @@ from entities.entity import Entity
 from core.input_state import InputState
 from core.air_resources import AirResources
 from combat.damage_model import DamageState
+from combat.pending_effects import PendingLaunch
 from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
@@ -20,6 +21,8 @@ class Fighter(Entity):
     def __init__(self, x: float, y: float, character) -> None:
         cfg = PlayerConfig()
         super().__init__(x, y, cfg.WIDTH, cfg.HEIGHT)
+
+        self.attack_hit_windows: set[int] = set()
 
         self.facing = 1
         self.input = InputState()
@@ -70,6 +73,8 @@ class Fighter(Entity):
 
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
+        self.pending_launch: PendingLaunch | None = None
+
         self.ultimate_timer = 0.0
         self.ultimate_ready = True
 
@@ -109,6 +114,7 @@ class Fighter(Entity):
         self.attack_has_hit = False
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
+        self.attack_hit_windows = set()
 
     def end_attack(self) -> None:
         self.is_attacking = False
@@ -118,6 +124,7 @@ class Fighter(Entity):
         self.attack_has_hit = False
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
+        self.attack_hit_windows = set()
 
     def reset_combat_state(self) -> None:
         """리스폰 등에서 호출: 공격/피격/이동 특수상태 초기화"""
@@ -125,6 +132,7 @@ class Fighter(Entity):
 
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
+        self.pending_launch = None
 
         self.is_dashing = False
         self.dash_timer = 0.0
@@ -143,6 +151,7 @@ class Fighter(Entity):
 
         self.pending_jump_kind = None
         self.jump_startup_timer = 0.0
+
         self.fast_falling = False
         self.fast_fall_lock_timer = 0.0
 

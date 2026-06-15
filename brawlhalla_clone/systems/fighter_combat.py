@@ -4,8 +4,10 @@
 # - 현재 공격 활성화 판정
 # - 히트박스 생성 및 타격 처리
 # - 무적(invuln), KO/dead 상태 무시 처리 포함
+# - 멀티히트 / delayed launch 지원
 
 import pygame
+from combat.pending_effects import PendingLaunch
 
 
 def tick_combat_timers(fighter, dt: float) -> None:
@@ -23,6 +25,21 @@ def tick_combat_timers(fighter, dt: float) -> None:
 
     if fighter.attack_tick_timer > 0.0:
         fighter.attack_tick_timer = max(0.0, fighter.attack_tick_timer - dt)
+
+
+def apply_pending_launch_if_ready(fighter) -> None:
+    if fighter.stun_timer > 0.0:
+        return
+
+    if fighter.pending_launch is None:
+        return
+
+    launch = fighter.pending_launch
+    fighter.pending_launch = None
+
+    fighter.vel.x = launch.vx
+    fighter.vel.y = launch.vy
+    fighter.hitstun_timer = launch.hitstun
 
 
 def try_start_attack(fighter) -> None:
@@ -57,12 +74,21 @@ def try_start_ultimate(fighter) -> None:
     fighter.character.try_start_ultimate(fighter)
 
 
-def is_attack_active(fighter) -> bool:
+def get_current_active_window_index(fighter) -> int | None:
     if fighter.current_attack is None:
-        return False
+        return None
 
     elapsed = fighter.attack_total_time - fighter.attack_timer
-    return fighter.current_attack.active_start <= elapsed <= fighter.current_attack.active_end
+
+    for i, (start, end) in enumerate(fighter.current_attack.active_windows):
+        if start <= elapsed <= end:
+            return i
+
+    return None
+
+
+def is_attack_active(fighter) -> bool:
+    return get_current_active_window_index(fighter) is not None
 
 
 def get_attack_hitbox(fighter):
@@ -76,6 +102,14 @@ def get_attack_hitbox(fighter):
 
 
 def update_attack(attacker, targets: list, dt: float) -> None:
+    if attacker.stun_timer > 0.0:
+        attacker.vel.x = 0.0
+        attacker.vel.y = 0.0
+        return
+
+    if attacker.hitstun_timer > 0.0:
+        return
+
     if not attacker.is_attacking or attacker.current_attack is None:
         return
 
@@ -97,31 +131,48 @@ def update_attack(attacker, targets: list, dt: float) -> None:
                         continue
                     try_hit_target(attacker, target, hitbox)
             attacker.attack_tick_timer = attack.repeated_hit_interval
+
     else:
-        if is_attack_active(attacker) and not attacker.attack_has_hit:
-            hitbox = get_attack_hitbox(attacker)
-            if hitbox is not None:
-                for target in targets:
-                    if target is attacker:
-                        continue
-                    try_hit_target(attacker, target, hitbox)
+        window_index = get_current_active_window_index(attacker)
+
+        if window_index is not None:
+            if not attack.allow_multi_hit:
+                if not attacker.attack_has_hit:
+                    hitbox = get_attack_hitbox(attacker)
+                    if hitbox is not None:
+                        for target in targets:
+                            if target is attacker:
+                                continue
+                            try_hit_target(attacker, target, hitbox)
+
+            else:
+                if window_index not in attacker.attack_hit_windows:
+                    hitbox = get_attack_hitbox(attacker)
+                    if hitbox is not None:
+                        hit_any = False
+                        for target in targets:
+                            if target is attacker:
+                                continue
+                            if try_hit_target(attacker, target, hitbox):
+                                hit_any = True
+
+                        attacker.attack_hit_windows.add(window_index)
+                        if hit_any:
+                            attacker.attack_has_hit = True
 
     if attacker.attack_timer <= 0.0:
         attacker.end_attack()
 
 
-def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
-    # 죽은 상태면 무시
+def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
     if getattr(target, "is_dead", False):
-        return
+        return False
 
-    # KO 처리 중이면 무시
     if getattr(target, "is_ko", False):
-        return
+        return False
 
-    # 무적 상태면 무시
     if getattr(target, "invuln_timer", 0.0) > 0.0:
-        return
+        return False
 
     target_rect = pygame.Rect(
         int(target.rect_x),
@@ -131,13 +182,25 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
     )
 
     if not hitbox.colliderect(target_rect):
-        return
+        return False
 
     effect = attacker.character.get_hit_effect(attacker, target)
 
     target.damage.add_damage(effect.damage)
-    target.vel.x = effect.vx
-    target.vel.y = effect.vy
-    target.hitstun_timer = effect.hitstun
+
+    if effect.delayed_launch and effect.stun > 0.0:
+        target.vel.x = 0.0
+        target.vel.y = 0.0
+        target.stun_timer = effect.stun
+        target.pending_launch = PendingLaunch(
+            vx=effect.vx,
+            vy=effect.vy,
+            hitstun=effect.hitstun,
+        )
+    else:
+        target.vel.x = effect.vx
+        target.vel.y = effect.vy
+        target.hitstun_timer = effect.hitstun
 
     attacker.attack_has_hit = True
+    return True
