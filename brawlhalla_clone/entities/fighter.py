@@ -1,4 +1,4 @@
-#entities/fighter.py
+# entities/fighter.py
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from entities.entity import Entity
 from core.input_state import InputState
 from core.air_resources import AirResources
 from combat.damage_model import DamageState
+from combat.pending_effects import PendingLaunch
 from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
@@ -66,6 +67,8 @@ class Fighter(Entity):
 
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
+        self.pending_launch: PendingLaunch | None = None
+
         self.ultimate_timer = 0.0
         self.ultimate_ready = True
 

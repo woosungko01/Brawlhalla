@@ -1,6 +1,7 @@
-#systems/fighter_combat.py
+# systems/fighter_combat.py
 
 import pygame
+from combat.pending_effects import PendingLaunch
 
 
 def tick_combat_timers(fighter, dt: float) -> None:
@@ -20,10 +21,27 @@ def tick_combat_timers(fighter, dt: float) -> None:
         fighter.attack_tick_timer = max(0.0, fighter.attack_tick_timer - dt)
 
 
+def apply_pending_launch_if_ready(fighter) -> None:
+    if fighter.stun_timer > 0.0:
+        return
+
+    if fighter.pending_launch is None:
+        return
+
+    launch = fighter.pending_launch
+    fighter.pending_launch = None
+
+    fighter.vel.x = launch.vx
+    fighter.vel.y = launch.vy
+    fighter.hitstun_timer = launch.hitstun
+
+
 def try_start_attack(fighter) -> None:
     if fighter.is_attacking:
         return
     if fighter.stun_timer > 0.0:
+        return
+    if fighter.hitstun_timer > 0.0:
         return
 
     attack = fighter.character.resolve_basic_attack(fighter)
@@ -37,6 +55,8 @@ def try_start_ultimate(fighter) -> None:
     if fighter.is_attacking:
         return
     if fighter.stun_timer > 0.0:
+        return
+    if fighter.hitstun_timer > 0.0:
         return
     if not fighter.ultimate_ready:
         return
@@ -63,6 +83,14 @@ def get_attack_hitbox(fighter):
 
 
 def update_attack(attacker, targets: list, dt: float) -> None:
+    if attacker.stun_timer > 0.0:
+        attacker.vel.x = 0.0
+        attacker.vel.y = 0.0
+        return
+
+    if attacker.hitstun_timer > 0.0:
+        return
+
     if not attacker.is_attacking or attacker.current_attack is None:
         return
 
@@ -108,11 +136,25 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
     if not hitbox.colliderect(target_rect):
         return
 
+    if target.invuln_timer > 0.0:
+        return
+
     effect = attacker.character.get_hit_effect(attacker, target)
 
     target.damage.add_damage(effect.damage)
-    target.vel.x = effect.vx
-    target.vel.y = effect.vy
-    target.hitstun_timer = effect.hitstun
+
+    if effect.delayed_launch and effect.stun > 0.0:
+        target.vel.x = 0.0
+        target.vel.y = 0.0
+        target.stun_timer = effect.stun
+        target.pending_launch = PendingLaunch(
+            vx=effect.vx,
+            vy=effect.vy,
+            hitstun=effect.hitstun,
+        )
+    else:
+        target.vel.x = effect.vx
+        target.vel.y = effect.vy
+        target.hitstun_timer = effect.hitstun
 
     attacker.attack_has_hit = True
