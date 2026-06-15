@@ -1,0 +1,263 @@
+# game/local_vs_match.py
+# 로컬 2인 대전 매치 파일
+# - player1 vs player2
+# - stocks 3개
+# - KO / respawn / winner 판정
+# - 데미지 기반 카메라 zoom out
+
+from __future__ import annotations
+
+import pygame
+
+from core.camera import Camera
+from core.input_state import InputState
+
+from stages.test_stage import build_test_stage
+
+from entities.player_fighter import PlayerFighter
+
+from characters.brawler import BrawlerCharacter
+from characters.swordsman import SwordsmanCharacter
+from characters.gunner import GunnerCharacter
+
+from systems.movement import apply_horizontal_control
+from systems.jump import try_request_jump, execute_pending_jump
+from systems.gravity import apply_vertical_forces
+from systems.dash import tick_dash_timers, try_request_dash, update_dash
+from systems.collision import (
+    move_and_collide,
+    update_grounded,
+    handle_landing,
+    snap_to_ground,
+    update_wall_cling,
+    handle_wall_touch,
+    handle_wall_detach_inputs,
+    is_standing_on_soft_platform,
+)
+from systems.state_machine import update_move_state
+from systems.fighter_combat import (
+    tick_combat_timers,
+    try_start_attack,
+    try_start_ultimate,
+    update_attack,
+)
+from systems.dodge import (
+    tick_dodge_timers,
+    try_request_dodge,
+    update_dodge,
+    cancel_dodge,
+)
+from rendering.match_renderer import MatchRenderer
+
+
+class LocalVsMatch:
+    def __init__(self, screen_w: int, screen_h: int, p1_char: str, p2_char: str) -> None:
+        self.stage = build_test_stage()
+        self.camera = Camera(screen_w, screen_h, self.stage.world_w, self.stage.world_h)
+        self.show_hud = True
+        self.renderer = MatchRenderer()
+
+        self.characters = {
+            "brawler": BrawlerCharacter(),
+            "swordsman": SwordsmanCharacter(),
+            "gunner": GunnerCharacter(),
+        }
+
+        self.player1 = PlayerFighter(
+            self.stage.player_spawn_x,
+            self.stage.player_spawn_y,
+            self.characters[p1_char],
+        )
+        self.player1.player_index = 1
+        self.player1.input = InputState()
+        self.player1.spawn_x = self.stage.player_spawn_x
+        self.player1.spawn_y = self.stage.player_spawn_y
+
+        self.player2 = PlayerFighter(
+            self.stage.dummy_spawn_x,
+            self.stage.dummy_spawn_y,
+            self.characters[p2_char],
+        )
+        self.player2.player_index = 2
+        self.player2.input = InputState()
+        self.player2.spawn_x = self.stage.dummy_spawn_x
+        self.player2.spawn_y = self.stage.dummy_spawn_y
+        self.player2.facing = -1
+
+        self.winner: PlayerFighter | None = None
+        self.is_match_over = False
+
+        # 아래로 충분히 떨어졌다고 판단하는 KO 라인
+        self.ko_bottom_y = self.stage.world_h + 220
+
+        update_grounded(self.player1, self.stage.platforms)
+        update_grounded(self.player2, self.stage.platforms)
+
+    def tick_timers(self, fighter, dt: float) -> None:
+        if fighter.jump_startup_timer > 0.0:
+            fighter.jump_startup_timer = max(0.0, fighter.jump_startup_timer - dt)
+
+        if fighter.fast_fall_lock_timer > 0.0:
+            fighter.fast_fall_lock_timer = max(0.0, fighter.fast_fall_lock_timer - dt)
+
+        if fighter.dodge_cooldown_timer > 0.0:
+            fighter.dodge_cooldown_timer = max(0.0, fighter.dodge_cooldown_timer - dt)
+
+        if fighter.wall_detach_grace_timer > 0.0:
+            fighter.wall_detach_grace_timer = max(0.0, fighter.wall_detach_grace_timer - dt)
+
+        if fighter.drop_through_timer > 0.0:
+            fighter.drop_through_timer = max(0.0, fighter.drop_through_timer - dt)
+
+        if fighter.invuln_timer > 0.0:
+            fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
+
+    def update_fighter(self, fighter, targets: list, dt: float) -> None:
+        fighter.was_grounded = fighter.is_grounded
+
+        if not fighter.is_grounded:
+            fighter.left_ground_since_dash = True
+
+        self.tick_timers(fighter, dt)
+        tick_dash_timers(fighter, dt)
+        tick_combat_timers(fighter, dt)
+        tick_dodge_timers(fighter, dt)
+
+        if fighter.input.ultimate_pressed:
+            try_start_ultimate(fighter)
+
+        if fighter.input.attack_pressed:
+            if fighter.is_dodging:
+                cancel_dodge(fighter)
+            try_start_attack(fighter)
+
+        if (
+            fighter.is_grounded
+            and fighter.input.down
+            and fighter.drop_through_timer <= 0.0
+            and not fighter.is_dodging
+            and not fighter.is_dashing
+            and is_standing_on_soft_platform(fighter, self.stage.platforms)
+        ):
+            fighter.drop_through_timer = 0.18
+            fighter.is_grounded = False
+            if fighter.vel.y < 60.0:
+                fighter.vel.y = 60.0
+
+        if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0 and fighter.hitstun_timer <= 0.0:
+            dodge_started = try_request_dodge(fighter)
+
+            if not dodge_started and not fighter.is_attacking:
+                if (
+                    not fighter.is_grounded
+                    and fighter.input.down
+                    and fighter.fast_fall_lock_timer <= 0.0
+                    and fighter.vel.y >= 0.0
+                    and fighter.near_ground
+                ):
+                    snap_to_ground(fighter, self.stage.platforms)
+
+                try_request_dash(fighter)
+
+        if fighter.input.jump_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0 and fighter.hitstun_timer <= 0.0:
+            try_request_jump(fighter)
+
+        execute_pending_jump(fighter)
+
+        if fighter.is_attacking:
+            update_attack(fighter, targets, dt)
+        elif fighter.is_dodging:
+            update_dodge(fighter, dt)
+        elif fighter.is_dashing:
+            update_dash(fighter, dt)
+        else:
+            if fighter.hitstun_timer <= 0.0 and fighter.stun_timer <= 0.0:
+                apply_horizontal_control(fighter, dt)
+
+        apply_vertical_forces(fighter, dt)
+        move_and_collide(fighter, dt, self.stage.platforms)
+        update_grounded(fighter, self.stage.platforms)
+
+        update_wall_cling(fighter)
+        handle_wall_detach_inputs(fighter)
+        handle_wall_touch(fighter)
+
+        handle_landing(fighter)
+        update_move_state(fighter)
+
+    def find_respawn_point(self, fallen_x: float, fighter_height: int) -> tuple[float, float]:
+        """
+        떨어진 x 위치와 가장 가까운 플랫폼 중심 위로 리스폰.
+        """
+        best_platform = None
+        best_dist = None
+
+        for platform in self.stage.platforms:
+            center_x = platform.x + platform.width * 0.5
+            dist = abs(center_x - fallen_x)
+
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best_platform = platform
+
+        if best_platform is None:
+            return self.stage.player_spawn_x, self.stage.player_spawn_y
+
+        px = best_platform.x + best_platform.width * 0.5
+        py = best_platform.y - (fighter_height * 0.5) - 8
+        return px, py
+
+    def handle_ko(self, fighter: PlayerFighter) -> None:
+        if fighter.is_ko or fighter.is_dead:
+            return
+
+        fighter.is_ko = True
+        fighter.stocks -= 1
+
+        if fighter.stocks <= 0:
+            fighter.is_dead = True
+            self.is_match_over = True
+            self.winner = self.player1 if fighter is self.player2 else self.player2
+            return
+
+        respawn_x, respawn_y = self.find_respawn_point(fighter.pos.x, fighter.height)
+        fighter.respawn_at(respawn_x, respawn_y, invuln_time=3.0)
+
+        other = self.player1 if fighter is self.player2 else self.player2
+        other.invuln_timer = max(other.invuln_timer, 3.0)
+
+    def check_ko(self) -> None:
+        if self.player1.pos.y > self.ko_bottom_y:
+            self.handle_ko(self.player1)
+
+        if self.player2.pos.y > self.ko_bottom_y:
+            self.handle_ko(self.player2)
+
+    def update(self, dt: float) -> None:
+        if self.is_match_over:
+            #max_percent = max(self.player1.damage.percent, self.player2.damage.percent)
+            #self.camera.set_target_zoom_from_damage(max_percent)
+            self.camera.set_dual_target(
+                self.player1.pos.x, self.player1.pos.y,
+                self.player2.pos.x, self.player2.pos.y,
+            )
+            return
+
+        self.update_fighter(self.player1, [self.player2], dt)
+        self.update_fighter(self.player2, [self.player1], dt)
+
+        self.check_ko()
+
+        max_percent = max(self.player1.damage.percent, self.player2.damage.percent)
+        self.camera.set_target_zoom_from_damage(max_percent)
+        self.camera.set_dual_target(
+            self.player1.pos.x, self.player1.pos.y,
+            self.player2.pos.x, self.player2.pos.y,
+        )
+
+    def draw(self, surface: pygame.Surface, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:
+        """
+        LocalVsMatch 자신을 그대로 렌더러에 넘긴다.
+        MatchRenderer가 player1 / player2 구조를 직접 처리하도록 한다.
+        """
+        self.renderer.draw(surface, self, dt, font, draw_debug_hud_fn)

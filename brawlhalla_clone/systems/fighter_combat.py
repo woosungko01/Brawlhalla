@@ -1,4 +1,9 @@
-#systems/fighter_combat.py
+# systems/fighter_combat.py
+# 파이터 전투 처리 파일
+# - 공격 시작 / 궁극기 시작
+# - 현재 공격 활성화 판정
+# - 히트박스 생성 및 타격 처리
+# - 무적(invuln), KO/dead 상태 무시 처리 포함
 
 import pygame
 
@@ -25,6 +30,10 @@ def try_start_attack(fighter) -> None:
         return
     if fighter.stun_timer > 0.0:
         return
+    if fighter.hitstun_timer > 0.0:
+        return
+    if getattr(fighter, "is_dead", False):
+        return
 
     attack = fighter.character.resolve_basic_attack(fighter)
     if attack is None:
@@ -37,6 +46,10 @@ def try_start_ultimate(fighter) -> None:
     if fighter.is_attacking:
         return
     if fighter.stun_timer > 0.0:
+        return
+    if fighter.hitstun_timer > 0.0:
+        return
+    if getattr(fighter, "is_dead", False):
         return
     if not fighter.ultimate_ready:
         return
@@ -98,6 +111,18 @@ def update_attack(attacker, targets: list, dt: float) -> None:
 
 
 def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
+    # 죽은 상태면 무시
+    if getattr(target, "is_dead", False):
+        return
+
+    # KO 처리 중이면 무시
+    if getattr(target, "is_ko", False):
+        return
+
+    # 무적 상태면 무시
+    if getattr(target, "invuln_timer", 0.0) > 0.0:
+        return
+
     target_rect = pygame.Rect(
         int(target.rect_x),
         int(target.rect_y),

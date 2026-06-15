@@ -1,4 +1,8 @@
 # rendering/match_renderer.py
+# 매치 렌더링 파일
+# - TrainingMatch / LocalVsMatch 둘 다 최대한 호환
+# - 1P/2P 또는 Player/Dummy 렌더
+# - 데미지 / stocks / 궁극기 상태 표시
 
 import pygame
 
@@ -13,10 +17,16 @@ class MatchRenderer:
     SOFT_PLATFORM_COLOR = (220, 190, 90)
     SOFT_PLATFORM_BORDER = (180, 145, 60)
     WORLD_BORDER_COLOR = (90, 90, 120)
-    PLAYER_COLOR = (100, 180, 255)
-    PLAYER_BORDER = (60, 140, 220)
+
+    PLAYER1_COLOR = (100, 180, 255)
+    PLAYER1_BORDER = (60, 140, 220)
+
+    PLAYER2_COLOR = (255, 170, 110)
+    PLAYER2_BORDER = (220, 120, 70)
+
     DUMMY_COLOR = (230, 120, 120)
     DUMMY_BORDER = (180, 80, 80)
+
     HITBOX_COLOR = (255, 220, 80)
 
     def __init__(self) -> None:
@@ -28,25 +38,47 @@ class MatchRenderer:
         self._draw_world(surface, match)
         self._draw_platforms(surface, match)
 
+        # LocalVsMatch 구조
+        if hasattr(match, "player1") and hasattr(match, "player2"):
+            self.fighter_renderer.update(match.player1, dt)
+            self.fighter_renderer.update(match.player2, dt)
+
+            self.fighter_renderer.draw(
+                surface, match.player1, match.camera,
+                self.PLAYER1_COLOR, self.PLAYER1_BORDER
+            )
+            self.fighter_renderer.draw(
+                surface, match.player2, match.camera,
+                self.PLAYER2_COLOR, self.PLAYER2_BORDER
+            )
+
+            self._draw_vs_labels(surface, match, font)
+            self._draw_attack_hitbox(surface, match.player1, match.camera)
+            self._draw_attack_hitbox(surface, match.player2, match.camera)
+            self._draw_vs_ui(surface, match, font)
+
+            if getattr(match, "show_hud", False):
+                draw_debug_hud_fn(surface, match.player1)
+
+            pygame.display.flip()
+            return
+
+        # TrainingMatch 구조 (기존 호환)
         self.fighter_renderer.update(match.player, dt)
         self.fighter_renderer.update(match.dummy, dt)
 
         self.fighter_renderer.draw(
             surface, match.player, match.camera,
-            self.PLAYER_COLOR, self.PLAYER_BORDER
+            self.PLAYER1_COLOR, self.PLAYER1_BORDER
         )
         self.fighter_renderer.draw(
             surface, match.dummy, match.camera,
             self.DUMMY_COLOR, self.DUMMY_BORDER
         )
 
-        self._draw_player_state(surface, match, font)
-        self._draw_character_label(surface, match, font)
-        self._draw_attack_hitbox(surface, match)
-
-        if match.player.ultimate_timer > 0.0:
-            ult_surf = font.render("ULT ACTIVE", True, (255, 220, 120))
-            surface.blit(ult_surf, (20, 60))
+        self._draw_training_labels(surface, match, font)
+        self._draw_attack_hitbox(surface, match.player, match.camera)
+        self._draw_single_ui(surface, match, font)
 
         if match.show_hud:
             draw_debug_hud_fn(surface, match.player)
@@ -55,20 +87,21 @@ class MatchRenderer:
 
     def _draw_world(self, surface: pygame.Surface, match) -> None:
         world_rect = pygame.Rect(
-            int(-match.camera.x),
-            int(-match.camera.y),
-            match.stage.world_w,
-            match.stage.world_h,
+            int((-match.camera.x) * match.camera.zoom),
+            int((-match.camera.y) * match.camera.zoom),
+            int(match.stage.world_w * match.camera.zoom),
+            int(match.stage.world_h * match.camera.zoom),
         )
         pygame.draw.rect(surface, self.WORLD_BORDER_COLOR, world_rect, 3)
 
     def _draw_platforms(self, surface: pygame.Surface, match) -> None:
         for plat in match.stage.platforms:
+            sx, sy = match.camera.world_to_screen(plat.x, plat.y)
             rect = pygame.Rect(
-                int(plat.x - match.camera.x),
-                int(plat.y - match.camera.y),
-                int(plat.width),
-                int(plat.height),
+                sx,
+                sy,
+                int(plat.width * match.camera.zoom),
+                int(plat.height * match.camera.zoom),
             )
 
             if getattr(plat, "is_soft", False):
@@ -78,29 +111,83 @@ class MatchRenderer:
                 pygame.draw.rect(surface, self.HARD_PLATFORM_COLOR, rect)
                 pygame.draw.rect(surface, self.HARD_PLATFORM_BORDER, rect, 2)
 
-    def _draw_player_state(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+    def _draw_attack_hitbox(self, surface: pygame.Surface, fighter, camera) -> None:
+        hitbox = get_attack_hitbox(fighter)
+        if hitbox is None:
+            return
+
+        sx, sy = camera.world_to_screen(hitbox.x, hitbox.y)
+        rect = pygame.Rect(
+            sx,
+            sy,
+            int(hitbox.width * camera.zoom),
+            int(hitbox.height * camera.zoom),
+        )
+        pygame.draw.rect(surface, self.HITBOX_COLOR, rect, 2)
+
+    def _draw_training_labels(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
         state_surf = font.render(match.player.move_state, True, (200, 200, 200))
+        px, py = match.camera.world_to_screen(match.player.pos.x, match.player.rect_y)
         surface.blit(
             state_surf,
             (
-                int(match.player.pos.x - match.camera.x - state_surf.get_width() // 2),
-                int(match.player.rect_y - match.camera.y - 22),
+                int(px - state_surf.get_width() // 2),
+                int(py - 22),
             ),
         )
 
-    def _draw_character_label(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
         char_surf = font.render(match.player.character.character_id, True, (255, 255, 255))
         surface.blit(char_surf, (20, 20))
 
-    def _draw_attack_hitbox(self, surface: pygame.Surface, match) -> None:
-        attack_hitbox = get_attack_hitbox(match.player)
-        if attack_hitbox is None:
-            return
+    def _draw_vs_labels(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+        for fighter in (match.player1, match.player2):
+            label = f"P{fighter.player_index} {fighter.character.character_id}"
+            surf = font.render(label, True, (230, 230, 230))
+            px, py = match.camera.world_to_screen(fighter.pos.x, fighter.rect_y)
+            surface.blit(
+                surf,
+                (
+                    int(px - surf.get_width() // 2),
+                    int(py - 22),
+                ),
+            )
 
-        hb = pygame.Rect(
-            int(attack_hitbox.x - match.camera.x),
-            int(attack_hitbox.y - match.camera.y),
-            attack_hitbox.width,
-            attack_hitbox.height,
-        )
-        pygame.draw.rect(surface, self.HITBOX_COLOR, hb, 2)
+    def _draw_single_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+        if match.player.ultimate_timer > 0.0:
+            ult_surf = font.render("ULT ACTIVE", True, (255, 220, 120))
+            surface.blit(ult_surf, (20, 60))
+
+    def _draw_vs_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+        p1 = match.player1
+        p2 = match.player2
+
+        p1_text = f"P1  {p1.character.character_id}   HP%:{p1.damage.percent:.1f}   STOCKS:{p1.stocks}"
+        p2_text = f"P2  {p2.character.character_id}   HP%:{p2.damage.percent:.1f}   STOCKS:{p2.stocks}"
+
+        p1_surf = font.render(p1_text, True, self.PLAYER1_COLOR)
+        p2_surf = font.render(p2_text, True, self.PLAYER2_COLOR)
+
+        surface.blit(p1_surf, (20, 20))
+        surface.blit(p2_surf, (20, 44))
+
+        if p1.ultimate_timer > 0.0:
+            ult1 = font.render("P1 ULT ACTIVE", True, (255, 220, 120))
+            surface.blit(ult1, (20, 70))
+
+        if p2.ultimate_timer > 0.0:
+            ult2 = font.render("P2 ULT ACTIVE", True, (255, 220, 120))
+            surface.blit(ult2, (20, 92))
+
+        if getattr(match, "is_match_over", False) and getattr(match, "winner", None) is not None:
+            win_surf = font.render(
+                f"P{match.winner.player_index} WIN!",
+                True,
+                (255, 240, 120),
+            )
+            surface.blit(
+                win_surf,
+                (
+                    surface.get_width() // 2 - win_surf.get_width() // 2,
+                    20,
+                ),
+            )
