@@ -8,6 +8,13 @@ from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
 from combat.knockback import FixedKnockback
 
+#stun 구현방식
+#stun_timer 시작 + pending_launch 저장
+#stun 끝남
+#launch 발사 시작
+#hitstun_timer 시작
+#(중력, 이동속도 받으며 hitstun 적용)
+
 
 class BrawlerCharacter(BaseCharacter):
     character_id = "brawler"

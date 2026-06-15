@@ -34,6 +34,7 @@ from systems.fighter_combat import (
     try_start_attack,
     try_start_ultimate,
     update_attack,
+    apply_pending_launch_if_ready,
 )
 from systems.dodge import (
     tick_dodge_timers,
@@ -123,16 +124,28 @@ class TrainingMatch:
         tick_combat_timers(fighter, dt)
         tick_dodge_timers(fighter, dt)
 
-        if fighter.input.ultimate_pressed:
+        # 정지 stun 종료 직후 예약 launch 적용
+        apply_pending_launch_if_ready(fighter)
+
+        # 완전 정지 stun
+        if fighter.stun_timer > 0.0:
+            fighter.vel.x = 0.0
+            fighter.vel.y = 0.0
+            update_move_state(fighter)
+            return
+
+        if fighter.input.ultimate_pressed and fighter.hitstun_timer <= 0.0:
             try_start_ultimate(fighter)
 
-        if fighter.input.attack_pressed:
+        if fighter.input.attack_pressed and fighter.hitstun_timer <= 0.0:
             if fighter.is_dodging:
                 cancel_dodge(fighter)
             try_start_attack(fighter)
 
+        # soft platform drop-through
         if (
-            fighter.is_grounded
+            fighter.hitstun_timer <= 0.0
+            and fighter.is_grounded
             and fighter.input.down
             and fighter.drop_through_timer <= 0.0
             and not fighter.is_dodging
@@ -144,7 +157,7 @@ class TrainingMatch:
             if fighter.vel.y < 60.0:
                 fighter.vel.y = 60.0
 
-        if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0:
+        if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0 and fighter.hitstun_timer <= 0.0:
             dodge_started = try_request_dodge(fighter)
 
             if not dodge_started and not fighter.is_attacking:
@@ -159,12 +172,19 @@ class TrainingMatch:
 
                 try_request_dash(fighter)
 
-        if fighter.input.jump_pressed and not fighter.is_attacking and fighter.stun_timer <= 0.0:
+        if (
+            fighter.input.jump_pressed
+            and not fighter.is_attacking
+            and fighter.stun_timer <= 0.0
+            and fighter.hitstun_timer <= 0.0
+        ):
             try_request_jump(fighter)
 
         execute_pending_jump(fighter)
 
-        if fighter.is_attacking:
+        if fighter.hitstun_timer > 0.0:
+            pass
+        elif fighter.is_attacking:
             update_attack(fighter, targets, dt)
         elif fighter.is_dodging:
             update_dodge(fighter, dt)
@@ -192,6 +212,14 @@ class TrainingMatch:
         tick_combat_timers(d, dt)
         tick_dodge_timers(d, dt)
 
+        apply_pending_launch_if_ready(d)
+
+        if d.stun_timer > 0.0:
+            d.vel.x = 0.0
+            d.vel.y = 0.0
+            update_move_state(d)
+            return
+
         d.input.reset_frame_events()
         d.input.left = False
         d.input.right = False
@@ -202,7 +230,9 @@ class TrainingMatch:
         d.input.attack = False
         d.input.ultimate = False
 
-        if d.is_dodging:
+        if d.hitstun_timer > 0.0:
+            pass
+        elif d.is_dodging:
             update_dodge(d, dt)
         else:
             if abs(d.vel.x) > 0.0:
