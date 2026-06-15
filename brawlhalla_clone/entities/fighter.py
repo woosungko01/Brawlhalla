@@ -18,6 +18,8 @@ class Fighter(Entity):
         cfg = PlayerConfig()
         super().__init__(x, y, cfg.WIDTH, cfg.HEIGHT)
 
+        self.attack_hit_windows: set[int] = set()
+
         self.facing = 1
         self.input = InputState()
         self.air = AirResources()
@@ -93,6 +95,7 @@ class Fighter(Entity):
         self.attack_has_hit = False
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
+        self.attack_hit_windows = set()
 
     def end_attack(self) -> None:
         self.is_attacking = False
@@ -102,3 +105,4 @@ class Fighter(Entity):
         self.attack_has_hit = False
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
+        self.attack_hit_windows = set()

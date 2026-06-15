@@ -64,12 +64,21 @@ def try_start_ultimate(fighter) -> None:
     fighter.character.try_start_ultimate(fighter)
 
 
-def is_attack_active(fighter) -> bool:
+def get_current_active_window_index(fighter) -> int | None:
     if fighter.current_attack is None:
-        return False
+        return None
 
     elapsed = fighter.attack_total_time - fighter.attack_timer
-    return fighter.current_attack.active_start <= elapsed <= fighter.current_attack.active_end
+
+    for i, (start, end) in enumerate(fighter.current_attack.active_windows):
+        if start <= elapsed <= end:
+            return i
+
+    return None
+
+
+def is_attack_active(fighter) -> bool:
+    return get_current_active_window_index(fighter) is not None
 
 
 def get_attack_hitbox(fighter):
@@ -113,19 +122,40 @@ def update_attack(attacker, targets: list, dt: float) -> None:
                     try_hit_target(attacker, target, hitbox)
             attacker.attack_tick_timer = attack.repeated_hit_interval
     else:
-        if is_attack_active(attacker) and not attacker.attack_has_hit:
-            hitbox = get_attack_hitbox(attacker)
-            if hitbox is not None:
-                for target in targets:
-                    if target is attacker:
-                        continue
-                    try_hit_target(attacker, target, hitbox)
+        window_index = get_current_active_window_index(attacker)
+
+        if window_index is not None:
+            # 단일 히트 공격
+            if not attack.allow_multi_hit:
+                if not attacker.attack_has_hit:
+                    hitbox = get_attack_hitbox(attacker)
+                    if hitbox is not None:
+                        for target in targets:
+                            if target is attacker:
+                                continue
+                            try_hit_target(attacker, target, hitbox)
+
+            # 멀티 히트 공격: active window마다 한 번씩
+            else:
+                if window_index not in attacker.attack_hit_windows:
+                    hitbox = get_attack_hitbox(attacker)
+                    if hitbox is not None:
+                        hit_any = False
+                        for target in targets:
+                            if target is attacker:
+                                continue
+                            if try_hit_target(attacker, target, hitbox):
+                                hit_any = True
+
+                        attacker.attack_hit_windows.add(window_index)
+                        if hit_any:
+                            attacker.attack_has_hit = True
 
     if attacker.attack_timer <= 0.0:
         attacker.end_attack()
 
 
-def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
+def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
     target_rect = pygame.Rect(
         int(target.rect_x),
         int(target.rect_y),
@@ -134,10 +164,10 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
     )
 
     if not hitbox.colliderect(target_rect):
-        return
+        return False
 
     if target.invuln_timer > 0.0:
-        return
+        return False
 
     effect = attacker.character.get_hit_effect(attacker, target)
 
@@ -158,3 +188,4 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> None:
         target.hitstun_timer = effect.hitstun
 
     attacker.attack_has_hit = True
+    return True

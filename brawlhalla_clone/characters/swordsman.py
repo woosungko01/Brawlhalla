@@ -8,6 +8,13 @@ from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
 from combat.knockback import FixedKnockback
 
+#stun 구현방식
+#stun_timer 시작 + pending_launch 저장
+#stun 끝남
+#launch 발사 시작
+#hitstun_timer 시작
+#(중력, 이동속도 받으며 hitstun 적용)
+
 
 class SwordsmanCharacter(BaseCharacter):
     character_id = "swordsman"
@@ -49,16 +56,27 @@ class SwordsmanCharacter(BaseCharacter):
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.30,
-            active_start=0.12,
-            active_end=0.20,
+            total_time=0.48,
+            active_windows=[
+                (0.20, 0.24),
+                (0.32, 0.36),
+                (0.44, 0.48),
+            ],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 58 - ((105 + (55 if f.ultimate_timer > 0.0 else 0)) / 2)),
+                int(f.pos.x + f.facing * 58),
                 int(f.pos.y - 14),
-                105 + (55 if f.ultimate_timer > 0.0 else 0),
+                90,
                 42,
             ),
-            knockback_model=FixedKnockback(10.0, 260.0, -140.0, 0.18),
+            knockback_model=FixedKnockback(
+                damage=15.0,
+                vx=80.0,
+                vy=-80.0,
+                hitstun=0.30,
+                stun=0.40,
+                delayed_launch=True,
+            ),
+            allow_multi_hit=True,
         )
 
     def _up(self) -> AttackData:
@@ -88,7 +106,14 @@ class SwordsmanCharacter(BaseCharacter):
                 105 + (55 if f.ultimate_timer > 0.0 else 0),
                 90,
             ),
-            knockback_model=FixedKnockback(12.0, 90.0, -760.0, 0.26),
+            knockback_model=FixedKnockback(
+                damage=10.0,
+                vx=180.0,
+                vy=-760.0,
+                hitstun=0.30,
+                stun=1,
+                delayed_launch=True,
+            ),
         )
 
     def _down_ground(self) -> AttackData:
@@ -98,12 +123,13 @@ class SwordsmanCharacter(BaseCharacter):
             active_start=0.14,
             active_end=0.24,
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 38 - ((105 + (55 if f.ultimate_timer > 0.0 else 0)) / 2)),
+                int(f.pos.x + f.facing * 38),
                 int(f.pos.y + 8),
-                105 + (55 if f.ultimate_timer > 0.0 else 0),
+                105,
                 70,
             ),
             knockback_model=FixedKnockback(11.0, 160.0, 420.0, 0.22),
+
         )
 
     def _down_air(self) -> AttackData:
