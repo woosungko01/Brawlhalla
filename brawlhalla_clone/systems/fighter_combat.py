@@ -1,4 +1,10 @@
 # systems/fighter_combat.py
+# 파이터 전투 처리 파일
+# - 공격 시작 / 궁극기 시작
+# - 현재 공격 활성화 판정
+# - 히트박스 생성 및 타격 처리
+# - 무적(invuln), KO/dead 상태 무시 처리 포함
+# - 멀티히트 / delayed launch 지원
 
 import pygame
 from combat.pending_effects import PendingLaunch
@@ -43,6 +49,8 @@ def try_start_attack(fighter) -> None:
         return
     if fighter.hitstun_timer > 0.0:
         return
+    if getattr(fighter, "is_dead", False):
+        return
 
     attack = fighter.character.resolve_basic_attack(fighter)
     if attack is None:
@@ -57,6 +65,8 @@ def try_start_ultimate(fighter) -> None:
     if fighter.stun_timer > 0.0:
         return
     if fighter.hitstun_timer > 0.0:
+        return
+    if getattr(fighter, "is_dead", False):
         return
     if not fighter.ultimate_ready:
         return
@@ -121,11 +131,11 @@ def update_attack(attacker, targets: list, dt: float) -> None:
                         continue
                     try_hit_target(attacker, target, hitbox)
             attacker.attack_tick_timer = attack.repeated_hit_interval
+
     else:
         window_index = get_current_active_window_index(attacker)
 
         if window_index is not None:
-            # 단일 히트 공격
             if not attack.allow_multi_hit:
                 if not attacker.attack_has_hit:
                     hitbox = get_attack_hitbox(attacker)
@@ -135,7 +145,6 @@ def update_attack(attacker, targets: list, dt: float) -> None:
                                 continue
                             try_hit_target(attacker, target, hitbox)
 
-            # 멀티 히트 공격: active window마다 한 번씩
             else:
                 if window_index not in attacker.attack_hit_windows:
                     hitbox = get_attack_hitbox(attacker)
@@ -156,6 +165,15 @@ def update_attack(attacker, targets: list, dt: float) -> None:
 
 
 def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
+    if getattr(target, "is_dead", False):
+        return False
+
+    if getattr(target, "is_ko", False):
+        return False
+
+    if getattr(target, "invuln_timer", 0.0) > 0.0:
+        return False
+
     target_rect = pygame.Rect(
         int(target.rect_x),
         int(target.rect_y),
@@ -164,9 +182,6 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
     )
 
     if not hitbox.colliderect(target_rect):
-        return False
-
-    if target.invuln_timer > 0.0:
         return False
 
     effect = attacker.character.get_hit_effect(attacker, target)
