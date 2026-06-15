@@ -6,14 +6,14 @@ import pygame
 from characters.base_character import BaseCharacter
 from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
-from combat.knockback import FixedKnockback
+from combat.knockback import FixedKnockback, ScalingKnockback
 
-#stun 구현방식
-#stun_timer 시작 + pending_launch 저장
-#stun 끝남
-#launch 발사 시작
-#hitstun_timer 시작
-#(중력, 이동속도 받으며 hitstun 적용)
+# stun 구현방식
+# stun_timer 시작 + pending_launch 저장
+# stun 끝남
+# launch 발사 시작
+# hitstun_timer 시작
+# (중력, 이동속도 받으며 hitstun 적용)
 
 
 class GunnerCharacter(BaseCharacter):
@@ -40,102 +40,149 @@ class GunnerCharacter(BaseCharacter):
         fighter.attack_tick_timer = 0.0
         return True
 
+    # 콤보 연결기
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
-            total_time=0.14,
-            active_start=0.03,
-            active_end=0.08,
+            total_time=0.22,
+            active_windows=[(0.00, 0.10)],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + 18 if f.facing == 1 else f.pos.x - 18 - 80),
-                int(f.pos.y + 18),
-                80,
-                26,
+                int(f.pos.x + 18 if f.facing == 1 else f.pos.x - 18 - 88),
+                int(f.pos.y + 16),
+                88,
+                28,
             ),
-            knockback_model=FixedKnockback(5.0, 120.0, 60.0, 0.08),
+            knockback_model=ScalingKnockback(
+                damage=6.0,
+                base_vx=120.0,
+                base_vy=40.0,
+                hitstun=0.10,
+                percent_scale=0.010,
+            ),
         )
 
+    # 콤보 스타터: side -> down_air
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.12,
-            active_start=0.02,
-            active_end=0.06,
+            total_time=0.48,
+            active_windows=[
+                (0.20, 0.24),
+                (0.32, 0.36),
+                (0.44, 0.48),
+            ],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x + 18 if f.facing == 1 else f.pos.x - 18 - 140),
                 int(f.pos.y - 12),
                 140,
                 18,
             ),
-            knockback_model=FixedKnockback(6.0, 220.0, -40.0, 0.10),
+            knockback_model=FixedKnockback(
+                damage=14.0,
+                vx=70.0,
+                vy=-60.0,
+                hitstun=0.28,
+                stun=0.38,
+                delayed_launch=True,
+            ),
+            allow_multi_hit=True,
         )
 
+    # 콤보 연결기
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
-            total_time=0.14,
-            active_start=0.03,
-            active_end=0.08,
+            total_time=0.24,
+            active_windows=[(0.00, 0.10)],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x - 60),
-                int(f.pos.y - 110),
-                120,
-                60,
+                int(f.pos.x - 62),
+                int(f.pos.y - 112),
+                124,
+                62,
             ),
-            knockback_model=FixedKnockback(7.0, 0.0, -520.0, 0.12),
+            knockback_model=ScalingKnockback(
+                damage=8.0,
+                base_vx=0.0,
+                base_vy=-520.0,
+                hitstun=0.14,
+                percent_scale=0.012,
+            ),
         )
 
+    # 콤보 스타터
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
-            total_time=0.14,
-            active_start=0.03,
-            active_end=0.08,
+            total_time=0.46,
+            active_windows=[
+                (0.16, 0.20),
+                (0.26, 0.30),
+                (0.36, 0.40),
+            ],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x - 60),
-                int(f.pos.y - 118),
-                120,
-                72,
+                int(f.pos.x - 62),
+                int(f.pos.y - 120),
+                124,
+                78,
             ),
-            knockback_model=FixedKnockback(8.0, 0.0, -620.0, 0.14),
+            knockback_model=FixedKnockback(
+                damage=13.0,
+                vx=0.0,
+                vy=-80.0,
+                hitstun=0.26,
+                stun=0.36,
+                delayed_launch=True,
+            ),
+            allow_multi_hit=True,
         )
 
+    # 콤보 연결기
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
-            total_time=0.14,
-            active_start=0.03,
-            active_end=0.08,
+            total_time=0.24,
+            active_windows=[(0.00, 0.10)],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x - 60),
+                int(f.pos.x - 62),
                 int(f.pos.y + 20),
-                120,
-                60,
+                124,
+                62,
             ),
-            knockback_model=FixedKnockback(7.0, 0.0, 560.0, 0.12),
+            knockback_model=ScalingKnockback(
+                damage=8.0,
+                base_vx=0.0,
+                base_vy=540.0,
+                hitstun=0.14,
+                percent_scale=0.012,
+            ),
         )
 
+    # 콤보 연결기: side -> down_air
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
-            total_time=0.14,
-            active_start=0.03,
-            active_end=0.08,
+            total_time=0.24,
+            active_windows=[(0.00, 0.10)],
             hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x - 60),
+                int(f.pos.x - 62),
                 int(f.pos.y + 28),
-                120,
-                72,
+                124,
+                74,
             ),
-            knockback_model=FixedKnockback(8.0, 0.0, 660.0, 0.14),
+            knockback_model=ScalingKnockback(
+                damage=9.0,
+                base_vx=0.0,
+                base_vy=620.0,
+                hitstun=0.16,
+                percent_scale=0.014,
+            ),
         )
 
     def _ultimate(self) -> AttackData:
         return AttackData(
             name=AttackSlot.ULTIMATE.value,
             total_time=4.0,
-            active_start=0.0,
-            active_end=4.0,
+            active_windows=[(0.0, 4.0)],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x - 160),
                 int(f.pos.y - 160),

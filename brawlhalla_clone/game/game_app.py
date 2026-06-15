@@ -91,12 +91,11 @@ class GameApp:
         inp.down = keys[pygame.K_DOWN]
         inp.up = keys[pygame.K_UP]
 
-        # 위 화살표도 점프 버튼으로 취급
         inp.jump = keys[pygame.K_RCTRL] or keys[pygame.K_KP0] or keys[pygame.K_UP]
         inp.dodge = keys[pygame.K_RSHIFT] or keys[pygame.K_KP1]
 
-        inp.attack = mouse_buttons[0]  # 좌클릭
-        inp.ultimate = mouse_buttons[2]  # 우클릭
+        inp.attack = mouse_buttons[0]
+        inp.ultimate = mouse_buttons[2]
 
         for event in events:
             if event.type == pygame.KEYDOWN:
@@ -114,6 +113,7 @@ class GameApp:
                     inp.attack_pressed = True
                 elif event.button == 3:
                     inp.ultimate_pressed = True
+
     # ─────────────────────────────────────────────────────
     # Scene 전역 이벤트
     # ─────────────────────────────────────────────────────
@@ -144,19 +144,20 @@ class GameApp:
                 elif event.key == pygame.K_j:
                     self.p1_locked = True
 
-            # 2P 선택: 좌/우 이동, 우클릭 확정
+            # 2P 선택: 좌/우 이동, 우클릭 또는 K 확정
             if not self.p2_locked:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         self.p2_choice_index = (self.p2_choice_index - 1) % len(self.CHAR_OPTIONS)
                     elif event.key == pygame.K_RIGHT:
                         self.p2_choice_index = (self.p2_choice_index + 1) % len(self.CHAR_OPTIONS)
-
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 3:  # 우클릭
+                    elif event.key == pygame.K_k:
                         self.p2_locked = True
 
-            # 둘 다 선택 완료 → match 시작
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 3:
+                        self.p2_locked = True
+
             if self.p1_locked and self.p2_locked:
                 self.start_local_vs_match()
 
@@ -182,10 +183,10 @@ class GameApp:
         self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 60))
 
         p1_title = self.font.render("P1  A/D: 선택   J: 확정", True, (120, 200, 255))
-        p2_title = self.font.render("P2  ←/→: 선택   Num2: 확정", True, (255, 180, 120))
+        p2_title = self.font.render("P2  ←/→: 선택   K 또는 우클릭: 확정", True, (255, 180, 120))
 
         self.screen.blit(p1_title, (120, 140))
-        self.screen.blit(p2_title, (self.SCREEN_W - 360, 140))
+        self.screen.blit(p2_title, (self.SCREEN_W - 420, 140))
 
         box_y = 250
         spacing = 220
@@ -195,12 +196,10 @@ class GameApp:
 
             base_rect = pygame.Rect(x - 70, box_y - 40, 140, 140)
 
-            # P1 선택 강조
             p1_color = (60, 120, 180) if i == self.p1_choice_index else (45, 45, 60)
             pygame.draw.rect(self.screen, p1_color, base_rect, border_radius=10)
             pygame.draw.rect(self.screen, (120, 200, 255), base_rect, 3, border_radius=10)
 
-            # P2 선택 강조 (살짝 아래에 테두리 추가 느낌)
             p2_rect = pygame.Rect(x - 66, box_y - 36, 132, 132)
             if i == self.p2_choice_index:
                 pygame.draw.rect(self.screen, (255, 180, 120), p2_rect, 3, border_radius=10)
@@ -245,7 +244,6 @@ class GameApp:
                 self.match.show_hud = not self.match.show_hud
 
             if event.key == pygame.K_r:
-                # 결과 화면으로 안 가고 바로 선택 화면으로 되돌림
                 self.reset_to_character_select()
 
     def update_match(self, dt: float, events: list[pygame.event.Event]) -> None:
