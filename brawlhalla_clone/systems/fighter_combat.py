@@ -1,10 +1,4 @@
 # systems/fighter_combat.py
-# 파이터 전투 처리 파일
-# - 공격 시작 / 궁극기 시작
-# - 현재 공격 활성화 판정
-# - 히트박스 생성 및 타격 처리
-# - 무적(invuln), KO/dead 상태 무시 처리 포함
-# - 멀티히트 / delayed launch 지원
 
 import pygame
 from combat.pending_effects import PendingLaunch
@@ -56,8 +50,6 @@ def try_start_attack(fighter) -> None:
     if attack is None:
         return
 
-    # 지상 공격은 기본적으로 모멘텀 끊기
-    # 단, dash_velocity_x가 있는 자동 이동 공격은 제외
     if fighter.is_grounded and attack.dash_velocity_x == 0.0:
         fighter.vel.x = 0.0
 
@@ -120,7 +112,6 @@ def update_attack(attacker, targets: list, dt: float) -> None:
 
     attack = attacker.current_attack
 
-    # 자동 이동 공격만 강제로 이동
     if attack.dash_velocity_x != 0.0:
         attacker.vel.x = attacker.facing * attack.dash_velocity_x
 
@@ -207,4 +198,5 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
         target.hitstun_timer = effect.hitstun
 
     attacker.attack_has_hit = True
+    attacker.can_attack_prestore = True
     return True

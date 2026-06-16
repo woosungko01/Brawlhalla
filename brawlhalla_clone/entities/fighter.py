@@ -1,8 +1,4 @@
 # entities/fighter.py
-# 전투 가능한 엔티티(Fighter) 정의 파일
-# - 이동/점프/대시/회피/공격 상태
-# - 데미지/피격 상태
-# - 2인 대전용 stocks / KO / respawn 상태 포함
 
 from __future__ import annotations
 
@@ -11,6 +7,7 @@ from core.input_state import InputState
 from core.air_resources import AirResources
 from combat.damage_model import DamageState
 from combat.pending_effects import PendingLaunch
+from combat.followup_buffer import FollowupAction
 from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
@@ -71,6 +68,10 @@ class Fighter(Entity):
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
 
+        # 공격 히트 후 전용 preinput
+        self.can_attack_prestore = False
+        self.stored_followup_action: FollowupAction | None = None
+
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
         self.pending_launch: PendingLaunch | None = None
@@ -90,19 +91,14 @@ class Fighter(Entity):
 
         self.drop_through_timer = 0.0
 
-        # ── 로컬 2인 대전용 상태 ─────────────────────────────
         self.stocks = 3
         self.is_ko = False
         self.is_dead = False
 
-        # 리스폰 위치 기준용
         self.spawn_x = x
         self.spawn_y = y
 
-        # 1P / 2P 표시용
         self.player_index = 0
-
-        # 조작 가능 여부
         self.is_controllable = True
 
     def start_attack(self, attack_data) -> None:
@@ -116,6 +112,9 @@ class Fighter(Entity):
         self.attack_tick_timer = 0.0
         self.attack_hit_windows = set()
 
+        self.can_attack_prestore = False
+        self.stored_followup_action = None
+
     def end_attack(self) -> None:
         self.is_attacking = False
         self.current_attack = None
@@ -127,8 +126,10 @@ class Fighter(Entity):
         self.attack_hit_windows = set()
 
     def reset_combat_state(self) -> None:
-        """리스폰 등에서 호출: 공격/피격/이동 특수상태 초기화"""
         self.end_attack()
+
+        self.can_attack_prestore = False
+        self.stored_followup_action = None
 
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
@@ -156,7 +157,6 @@ class Fighter(Entity):
         self.fast_fall_lock_timer = 0.0
 
     def respawn_at(self, x: float, y: float, invuln_time: float = 3.0) -> None:
-        """지정 위치에 리스폰하고 데미지/공중 자원 등을 초기화"""
         self.pos.x = x
         self.pos.y = y
         self.vel.x = 0.0

@@ -14,15 +14,15 @@ from characters.brawler import BrawlerCharacter
 from characters.swordsman import SwordsmanCharacter
 from characters.gunner import GunnerCharacter
 
+from combat.followup_buffer import FollowupAction
+
 from systems.movement import apply_horizontal_control
 from systems.jump import try_request_jump, execute_pending_jump
 from systems.gravity import apply_vertical_forces
-from systems.dash import tick_dash_timers, try_request_dash, update_dash
 from systems.collision import (
     move_and_collide,
     update_grounded,
     handle_landing,
-    snap_to_ground,
     update_wall_cling,
     handle_wall_touch,
     handle_wall_detach_inputs,
@@ -122,14 +122,55 @@ class TrainingMatch:
         if fighter.invuln_timer > 0.0:
             fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
 
+    def _store_followup_if_possible(self, fighter, action: FollowupAction) -> None:
+        if not fighter.is_attacking:
+            return
+        if not fighter.can_attack_prestore:
+            return
+        if fighter.stored_followup_action is not None:
+            return
+
+        fighter.stored_followup_action = action
+
+    def _consume_followup_if_ready(self, fighter) -> None:
+        if fighter.is_attacking:
+            return
+        if not fighter.can_attack_prestore:
+            return
+        if fighter.stored_followup_action is None:
+            return
+        if fighter.hitstun_timer > 0.0 or fighter.stun_timer > 0.0:
+            return
+
+        action = fighter.stored_followup_action
+        fighter.stored_followup_action = None
+        fighter.can_attack_prestore = False
+
+        if action.action_type == "dodge":
+            original_left = fighter.input.left
+            original_right = fighter.input.right
+            original_up = fighter.input.up
+            original_down = fighter.input.down
+
+            fighter.input.left = action.move_x < 0
+            fighter.input.right = action.move_x > 0
+            fighter.input.up = action.move_y < 0
+            fighter.input.down = action.move_y > 0
+
+            try_request_dodge(fighter)
+
+            fighter.input.left = original_left
+            fighter.input.right = original_right
+            fighter.input.up = original_up
+            fighter.input.down = original_down
+
+        elif action.action_type == "attack":
+            try_start_attack(fighter)
+
     def update_fighter(self, fighter, targets: list, dt: float) -> None:
         fighter.was_grounded = fighter.is_grounded
 
-        if not fighter.is_grounded:
-            fighter.left_ground_since_dash = True
-
         self.tick_timers(fighter, dt)
-        tick_dash_timers(fighter, dt)
         tick_combat_timers(fighter, dt)
         tick_dodge_timers(fighter, dt)
 
@@ -144,10 +185,16 @@ class TrainingMatch:
         if fighter.input.ultimate_pressed and fighter.hitstun_timer <= 0.0:
             try_start_ultimate(fighter)
 
-        if fighter.input.attack_pressed and fighter.hitstun_timer <= 0.0:
-            if fighter.is_dodging:
-                cancel_dodge(fighter)
-            try_start_attack(fighter)
+        if fighter.input.attack_pressed:
+            self._store_followup_if_possible(
+                fighter,
+                FollowupAction(action_type="attack"),
+            )
+
+            if not fighter.is_attacking and fighter.hitstun_timer <= 0.0:
+                if fighter.is_dodging:
+                    cancel_dodge(fighter)
+                try_start_attack(fighter)
 
         if (
             fighter.hitstun_timer <= 0.0
@@ -155,7 +202,6 @@ class TrainingMatch:
             and fighter.input.down
             and fighter.drop_through_timer <= 0.0
             and not fighter.is_dodging
-            and not fighter.is_dashing
             and is_standing_on_soft_platform(fighter, self.stage.platforms)
         ):
             fighter.drop_through_timer = 0.18
@@ -164,19 +210,17 @@ class TrainingMatch:
                 fighter.vel.y = 60.0
 
         if fighter.input.dodge_pressed and fighter.stun_timer <= 0.0 and fighter.hitstun_timer <= 0.0:
-            dodge_started = try_request_dodge(fighter)
+            self._store_followup_if_possible(
+                fighter,
+                FollowupAction(
+                    action_type="dodge",
+                    move_x=fighter.input.move_x,
+                    move_y=int(fighter.input.down) - int(fighter.input.up),
+                ),
+            )
 
-            if not dodge_started and not fighter.is_attacking:
-                if (
-                    not fighter.is_grounded
-                    and fighter.input.down
-                    and fighter.fast_fall_lock_timer <= 0.0
-                    and fighter.vel.y >= 0.0
-                    and fighter.near_ground
-                ):
-                    snap_to_ground(fighter, self.stage.platforms)
-
-                try_request_dash(fighter)
+            if not fighter.is_attacking:
+                try_request_dodge(fighter)
 
         if (
             fighter.input.jump_pressed
@@ -194,10 +238,10 @@ class TrainingMatch:
             update_attack(fighter, targets, dt)
         elif fighter.is_dodging:
             update_dodge(fighter, dt)
-        elif fighter.is_dashing:
-            update_dash(fighter, dt)
         else:
             apply_horizontal_control(fighter, dt)
+
+        self._consume_followup_if_ready(fighter)
 
         apply_vertical_forces(fighter, dt)
         move_and_collide(fighter, dt, self.stage.platforms)
