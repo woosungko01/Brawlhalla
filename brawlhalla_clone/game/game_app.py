@@ -1,7 +1,9 @@
 # game/game_app.py
 # 게임 최상위 앱 파일
+# - 모드 선택 화면
 # - 캐릭터 선택 화면
 # - 로컬 2인 대전 시작
+# - 트레이닝 모드 시작
 # - 결과 화면
 # - 1P / 2P 입력 처리
 
@@ -37,8 +39,8 @@ class GameApp:
         self.font = pygame.font.SysFont("monospace", 13)
         self.big_font = pygame.font.SysFont("monospace", 26)
 
-        # scene: "character_select" | "match" | "result" | "training"
-        self.scene = "character_select"
+        # scene: "mode_select" | "character_select" | "match" | "result" | "training"
+        self.scene = "mode_select"
 
         self.match = None
 
@@ -130,12 +132,46 @@ class GameApp:
                     sys.exit()
 
     # ─────────────────────────────────────────────────────
+    # 모드 선택 화면
+    # ─────────────────────────────────────────────────────
+
+    def handle_mode_select_events(self, events: list[pygame.event.Event]) -> None:
+        for event in events:
+            if event.type != pygame.KEYDOWN:
+                continue
+
+            if event.key == pygame.K_1:
+                self.reset_to_character_select()
+                self.scene = "character_select"
+
+            elif event.key == pygame.K_2:
+                self.start_training_match()
+
+    def start_training_match(self) -> None:
+        self.match = TrainingMatch(self.SCREEN_W, self.SCREEN_H)
+        self.scene = "training"
+
+    def draw_mode_select(self) -> None:
+        self.screen.fill((18, 18, 28))
+
+        title = self.big_font.render("SELECT MODE", True, (240, 240, 240))
+        multi = self.big_font.render("1. MULTI", True, (255, 180, 120))
+        training = self.big_font.render("2. TRAINING", True, (120, 200, 255))
+        guide = self.font.render("ESC: 종료", True, (180, 180, 180))
+
+        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 120))
+        self.screen.blit(multi, (self.SCREEN_W // 2 - multi.get_width() // 2, 260))
+        self.screen.blit(training, (self.SCREEN_W // 2 - training.get_width() // 2, 330))
+        self.screen.blit(guide, (20, self.SCREEN_H - 30))
+
+        pygame.display.flip()
+
+    # ─────────────────────────────────────────────────────
     # 캐릭터 선택 화면
     # ─────────────────────────────────────────────────────
 
     def handle_character_select_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
-            # 1P 선택: A/D 이동, J 확정
             if not self.p1_locked and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_a:
                     self.p1_choice_index = (self.p1_choice_index - 1) % len(self.CHAR_OPTIONS)
@@ -144,7 +180,6 @@ class GameApp:
                 elif event.key == pygame.K_j:
                     self.p1_locked = True
 
-            # 2P 선택: 좌/우 이동, 우클릭 또는 K 확정
             if not self.p2_locked:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
@@ -169,7 +204,6 @@ class GameApp:
         self.scene = "match"
 
     def reset_to_character_select(self) -> None:
-        self.scene = "character_select"
         self.match = None
         self.p1_choice_index = 0
         self.p2_choice_index = 1
@@ -224,7 +258,9 @@ class GameApp:
             self.screen.blit(locked2, (self.SCREEN_W - 220, 190))
 
         guide = self.font.render("ESC: 종료", True, (180, 180, 180))
+        back = self.font.render("R: 모드 선택으로", True, (180, 180, 180))
         self.screen.blit(guide, (20, self.SCREEN_H - 30))
+        self.screen.blit(back, (160, self.SCREEN_H - 30))
 
         pygame.display.flip()
 
@@ -244,6 +280,8 @@ class GameApp:
                 self.match.show_hud = not self.match.show_hud
 
             if event.key == pygame.K_r:
+                self.scene = "mode_select"
+                self.match = None
                 self.reset_to_character_select()
 
     def update_match(self, dt: float, events: list[pygame.event.Event]) -> None:
@@ -259,6 +297,43 @@ class GameApp:
             self.scene = "result"
 
     # ─────────────────────────────────────────────────────
+    # 트레이닝 화면
+    # ─────────────────────────────────────────────────────
+
+    def handle_training_events(self, events: list[pygame.event.Event]) -> None:
+        if self.match is None:
+            return
+
+        for event in events:
+            if event.type != pygame.KEYDOWN:
+                continue
+
+            if event.key == pygame.K_F1:
+                self.match.show_hud = not self.match.show_hud
+
+            if event.key == pygame.K_r:
+                self.match.reset()
+
+            if event.key == pygame.K_1:
+                self.match.set_player_character("brawler")
+            if event.key == pygame.K_2:
+                self.match.set_player_character("swordsman")
+            if event.key == pygame.K_3:
+                self.match.set_player_character("gunner")
+
+            if event.key == pygame.K_TAB:
+                self.scene = "mode_select"
+                self.match = None
+                self.reset_to_character_select()
+
+    def update_training(self, dt: float, events: list[pygame.event.Event]) -> None:
+        if self.match is None:
+            return
+
+        self.read_input_p1(self.match.player.input, events)
+        self.match.update(dt)
+
+    # ─────────────────────────────────────────────────────
     # 결과 화면
     # ─────────────────────────────────────────────────────
 
@@ -268,6 +343,8 @@ class GameApp:
                 continue
 
             if event.key == pygame.K_r:
+                self.scene = "mode_select"
+                self.match = None
                 self.reset_to_character_select()
 
     def draw_result(self) -> None:
@@ -279,7 +356,7 @@ class GameApp:
             winner_text = "MATCH END"
 
         title = self.big_font.render(winner_text, True, (255, 240, 120))
-        info = self.font.render("R: 캐릭터 선택 화면으로 돌아가기", True, (220, 220, 220))
+        info = self.font.render("R: 모드 선택 화면으로 돌아가기", True, (220, 220, 220))
 
         self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, self.SCREEN_H // 2 - 40))
         self.screen.blit(info, (self.SCREEN_W // 2 - info.get_width() // 2, self.SCREEN_H // 2 + 10))
@@ -298,13 +375,23 @@ class GameApp:
             events = pygame.event.get()
             self.handle_global_events(events)
 
-            if self.scene == "character_select":
+            if self.scene == "mode_select":
+                self.handle_mode_select_events(events)
+                self.draw_mode_select()
+
+            elif self.scene == "character_select":
                 self.handle_character_select_events(events)
                 self.draw_character_select()
 
             elif self.scene == "match":
                 self.handle_match_events(events)
                 self.update_match(dt, events)
+                if self.match is not None:
+                    self.match.draw(self.screen, dt, self.font, draw_debug_hud)
+
+            elif self.scene == "training":
+                self.handle_training_events(events)
+                self.update_training(dt, events)
                 if self.match is not None:
                     self.match.draw(self.screen, dt, self.font, draw_debug_hud)
 
