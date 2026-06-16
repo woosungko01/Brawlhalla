@@ -39,40 +39,34 @@ class GameApp:
         self.font = pygame.font.SysFont("monospace", 13)
         self.big_font = pygame.font.SysFont("monospace", 26)
 
-        # scene: "mode_select" | "character_select" | "match" | "result" | "training"
         self.scene = "mode_select"
-
         self.match = None
 
-        # 캐릭터 선택 상태
         self.p1_choice_index = 0
         self.p2_choice_index = 1
         self.p1_locked = False
         self.p2_locked = False
 
-    # ─────────────────────────────────────────────────────
-    # 입력 처리
-    # ─────────────────────────────────────────────────────
-
     def read_input_p1(self, inp: InputState, events: list[pygame.event.Event]) -> None:
         inp.reset_frame_events()
         keys = pygame.key.get_pressed()
 
-        inp.left = keys[pygame.K_a]
-        inp.right = keys[pygame.K_d]
-        inp.down = keys[pygame.K_s]
-        inp.up = keys[pygame.K_w]
+        # 트레이닝에서도 방향키 사용 가능하도록 확장
+        inp.left = keys[pygame.K_a] or keys[pygame.K_LEFT]
+        inp.right = keys[pygame.K_d] or keys[pygame.K_RIGHT]
+        inp.down = keys[pygame.K_s] or keys[pygame.K_DOWN]
+        inp.up = keys[pygame.K_w] or keys[pygame.K_UP]
 
-        inp.jump = keys[pygame.K_SPACE] or keys[pygame.K_w]
-        inp.dodge = keys[pygame.K_LSHIFT]
+        inp.jump = keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]
+        inp.dodge = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
         inp.attack = keys[pygame.K_j]
         inp.ultimate = keys[pygame.K_k]
 
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_SPACE, pygame.K_w):
+                if event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
                     inp.jump_pressed = True
-                if event.key == pygame.K_LSHIFT:
+                if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                     inp.dodge_pressed = True
                 if event.key == pygame.K_j:
                     inp.attack_pressed = True
@@ -80,7 +74,7 @@ class GameApp:
                     inp.ultimate_pressed = True
 
             elif event.type == pygame.KEYUP:
-                if event.key in (pygame.K_SPACE, pygame.K_w):
+                if event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
                     inp.jump_released = True
 
     def read_input_p2(self, inp: InputState, events: list[pygame.event.Event]) -> None:
@@ -116,10 +110,6 @@ class GameApp:
                 elif event.button == 3:
                     inp.ultimate_pressed = True
 
-    # ─────────────────────────────────────────────────────
-    # Scene 전역 이벤트
-    # ─────────────────────────────────────────────────────
-
     def handle_global_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
             if event.type == pygame.QUIT:
@@ -130,10 +120,6 @@ class GameApp:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-
-    # ─────────────────────────────────────────────────────
-    # 모드 선택 화면
-    # ─────────────────────────────────────────────────────
 
     def handle_mode_select_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
@@ -165,10 +151,6 @@ class GameApp:
         self.screen.blit(guide, (20, self.SCREEN_H - 30))
 
         pygame.display.flip()
-
-    # ─────────────────────────────────────────────────────
-    # 캐릭터 선택 화면
-    # ─────────────────────────────────────────────────────
 
     def handle_character_select_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
@@ -264,10 +246,6 @@ class GameApp:
 
         pygame.display.flip()
 
-    # ─────────────────────────────────────────────────────
-    # 매치 화면
-    # ─────────────────────────────────────────────────────
-
     def handle_match_events(self, events: list[pygame.event.Event]) -> None:
         if self.match is None:
             return
@@ -295,10 +273,6 @@ class GameApp:
 
         if self.match.is_match_over:
             self.scene = "result"
-
-    # ─────────────────────────────────────────────────────
-    # 트레이닝 화면
-    # ─────────────────────────────────────────────────────
 
     def handle_training_events(self, events: list[pygame.event.Event]) -> None:
         if self.match is None:
@@ -333,10 +307,6 @@ class GameApp:
         self.read_input_p1(self.match.player.input, events)
         self.match.update(dt)
 
-    # ─────────────────────────────────────────────────────
-    # 결과 화면
-    # ─────────────────────────────────────────────────────
-
     def handle_result_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
             if event.type != pygame.KEYDOWN:
@@ -362,10 +332,6 @@ class GameApp:
         self.screen.blit(info, (self.SCREEN_W // 2 - info.get_width() // 2, self.SCREEN_H // 2 + 10))
 
         pygame.display.flip()
-
-    # ─────────────────────────────────────────────────────
-    # 메인 루프
-    # ─────────────────────────────────────────────────────
 
     def run(self) -> None:
         while True:

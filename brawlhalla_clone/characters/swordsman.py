@@ -8,12 +8,13 @@ from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
 from combat.knockback import FixedKnockback, ScalingKnockback
 
-# stun 구현방식
-# stun_timer 시작 + pending_launch 저장
-# stun 끝남
-# launch 발사 시작
-# hitstun_timer 시작
-# (중력, 이동속도 받으며 hitstun 적용)
+
+def _facing_rect(center_x: float, top_y: float, width: float, height: float, facing: int) -> pygame.Rect:
+    if facing >= 0:
+        x = center_x
+    else:
+        x = center_x - width
+    return pygame.Rect(int(x), int(top_y), int(width), int(height))
 
 
 class SwordsmanCharacter(BaseCharacter):
@@ -38,7 +39,6 @@ class SwordsmanCharacter(BaseCharacter):
         fighter.start_attack(self._ultimate())
         return True
 
-    # 콤보 스타터
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
@@ -48,11 +48,12 @@ class SwordsmanCharacter(BaseCharacter):
                 (0.26, 0.30),
                 (0.36, 0.40),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 24),
-                int(f.pos.y - 36),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 24,
+                f.pos.y - 36,
                 56,
                 76,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
@@ -65,7 +66,6 @@ class SwordsmanCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 스타터: side -> down_ground
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
@@ -75,11 +75,12 @@ class SwordsmanCharacter(BaseCharacter):
                 (0.32, 0.36),
                 (0.44, 0.48),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 58),
-                int(f.pos.y - 14),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 58,
+                f.pos.y - 14,
                 90,
                 42,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=15.0,
@@ -92,17 +93,17 @@ class SwordsmanCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
             total_time=0.34,
             active_windows=[(0.00, 0.12)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 14),
-                int(f.pos.y - 88),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 14,
+                f.pos.y - 88,
                 110,
                 74,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
@@ -113,7 +114,6 @@ class SwordsmanCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 스타터
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
@@ -123,11 +123,12 @@ class SwordsmanCharacter(BaseCharacter):
                 (0.28, 0.32),
                 (0.38, 0.42),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 20),
-                int(f.pos.y - 108),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 20,
+                f.pos.y - 108,
                 112,
                 92,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
@@ -140,17 +141,17 @@ class SwordsmanCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기: side -> down_ground
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
             total_time=0.36,
             active_windows=[(0.00, 0.12)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 38),
-                int(f.pos.y + 8),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 38,
+                f.pos.y + 8,
                 105,
                 70,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
@@ -161,17 +162,17 @@ class SwordsmanCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 연결기
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
             total_time=0.36,
             active_windows=[(0.00, 0.12)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 22),
-                int(f.pos.y + 16),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 22,
+                f.pos.y + 16,
                 108,
                 84,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=12.0,
@@ -190,7 +191,10 @@ class SwordsmanCharacter(BaseCharacter):
             w = 500
             h = 160
             y = f.pos.y - 80
-            x = f.pos.x + 10 if f.facing == 1 else f.pos.x - 10 - w
+            if f.facing >= 0:
+                x = f.pos.x + 10
+            else:
+                x = f.pos.x - 10 - w
             return pygame.Rect(int(x), int(y), w, h)
 
         return AttackData(

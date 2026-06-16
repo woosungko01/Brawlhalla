@@ -8,12 +8,13 @@ from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
 from combat.knockback import FixedKnockback, ScalingKnockback
 
-# stun 구현방식
-# stun_timer 시작 + pending_launch 저장
-# stun 끝남
-# launch 발사 시작
-# hitstun_timer 시작
-# (중력, 이동속도 받으며 hitstun 적용)
+
+def _facing_rect(center_x: float, top_y: float, width: float, height: float, facing: int) -> pygame.Rect:
+    if facing >= 0:
+        x = center_x
+    else:
+        x = center_x - width
+    return pygame.Rect(int(x), int(top_y), int(width), int(height))
 
 
 class BrawlerCharacter(BaseCharacter):
@@ -38,17 +39,17 @@ class BrawlerCharacter(BaseCharacter):
         fighter.ultimate_timer = 5.0
         return True
 
-    # 콤보 연결기: side -> neutral
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
             total_time=0.34,
             active_windows=[(0.00, 0.12)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 34),
-                int(f.pos.y - 30),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 34,
+                f.pos.y - 30,
                 72,
                 84,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
@@ -59,7 +60,6 @@ class BrawlerCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 스타터
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
@@ -69,11 +69,12 @@ class BrawlerCharacter(BaseCharacter):
                 (0.32, 0.36),
                 (0.44, 0.48),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 44),
-                int(f.pos.y - 10),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 44,
+                f.pos.y - 10,
                 74,
                 40,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
@@ -86,17 +87,17 @@ class BrawlerCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
             total_time=0.34,
-            active_windows=[(0.02, 0.14)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 26),
-                int(f.pos.y - 86),
+            active_windows=[(0.00, 0.12)],
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 26,
+                f.pos.y - 86,
                 92,
                 76,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=10.0,
@@ -107,7 +108,6 @@ class BrawlerCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 스타터
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
@@ -117,11 +117,12 @@ class BrawlerCharacter(BaseCharacter):
                 (0.28, 0.32),
                 (0.38, 0.42),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 26),
-                int(f.pos.y - 98),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 26,
+                f.pos.y - 98,
                 96,
                 84,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
@@ -136,17 +137,17 @@ class BrawlerCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
             total_time=0.38,
             active_windows=[(0.00, 0.12)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 32),
-                int(f.pos.y + 6),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 32,
+                f.pos.y + 6,
                 92,
                 52,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=10.0,
@@ -159,7 +160,6 @@ class BrawlerCharacter(BaseCharacter):
             dash_velocity_x=260.0,
         )
 
-    # 콤보 스타터
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
@@ -169,11 +169,12 @@ class BrawlerCharacter(BaseCharacter):
                 (0.26, 0.30),
                 (0.36, 0.40),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + f.facing * 28),
-                int(f.pos.y + 12),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 28,
+                f.pos.y + 12,
                 88,
                 54,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,

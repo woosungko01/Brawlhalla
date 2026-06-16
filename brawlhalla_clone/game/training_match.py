@@ -70,6 +70,10 @@ class TrainingMatch:
             self.stage.dummy_spawn_y,
             self.characters["brawler"],
         )
+        self.dummy.spawn_x = self.stage.dummy_spawn_x
+        self.dummy.spawn_y = self.stage.dummy_spawn_y
+
+        self.ko_bottom_y = self.stage.world_h + 220
 
         update_grounded(self.player, self.stage.platforms)
         update_grounded(self.dummy, self.stage.platforms)
@@ -89,6 +93,8 @@ class TrainingMatch:
             self.stage.dummy_spawn_y,
             self.characters["brawler"],
         )
+        self.dummy.spawn_x = self.stage.dummy_spawn_x
+        self.dummy.spawn_y = self.stage.dummy_spawn_y
 
         update_grounded(self.player, self.stage.platforms)
         update_grounded(self.dummy, self.stage.platforms)
@@ -113,6 +119,9 @@ class TrainingMatch:
         if fighter.drop_through_timer > 0.0:
             fighter.drop_through_timer = max(0.0, fighter.drop_through_timer - dt)
 
+        if fighter.invuln_timer > 0.0:
+            fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
+
     def update_fighter(self, fighter, targets: list, dt: float) -> None:
         fighter.was_grounded = fighter.is_grounded
 
@@ -124,10 +133,8 @@ class TrainingMatch:
         tick_combat_timers(fighter, dt)
         tick_dodge_timers(fighter, dt)
 
-        # 정지 stun 종료 직후 예약 launch 적용
         apply_pending_launch_if_ready(fighter)
 
-        # 완전 정지 stun
         if fighter.stun_timer > 0.0:
             fighter.vel.x = 0.0
             fighter.vel.y = 0.0
@@ -142,7 +149,6 @@ class TrainingMatch:
                 cancel_dodge(fighter)
             try_start_attack(fighter)
 
-        # soft platform drop-through
         if (
             fighter.hitstun_timer <= 0.0
             and fighter.is_grounded
@@ -204,6 +210,13 @@ class TrainingMatch:
         handle_landing(fighter)
         update_move_state(fighter)
 
+    def respawn_dummy_if_needed(self) -> None:
+        if self.dummy.pos.y <= self.ko_bottom_y:
+            return
+
+        self.dummy.respawn_at(self.dummy.spawn_x, self.dummy.spawn_y, invuln_time=0.0)
+        self.dummy.damage.reset()
+
     def update_dummy(self, dt: float) -> None:
         d = self.dummy
         d.was_grounded = d.is_grounded
@@ -256,6 +269,7 @@ class TrainingMatch:
     def update(self, dt: float) -> None:
         self.update_fighter(self.player, [self.dummy], dt)
         self.update_dummy(dt)
+        self.respawn_dummy_if_needed()
         self.camera.update(self.player.pos.x, self.player.pos.y)
 
     def draw(self, surface: pygame.Surface, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:

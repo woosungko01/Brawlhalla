@@ -8,12 +8,13 @@ from characters.attack_data import AttackData
 from characters.attack_slots import AttackSlot
 from combat.knockback import FixedKnockback, ScalingKnockback
 
-# stun 구현방식
-# stun_timer 시작 + pending_launch 저장
-# stun 끝남
-# launch 발사 시작
-# hitstun_timer 시작
-# (중력, 이동속도 받으며 hitstun 적용)
+
+def _facing_rect(center_x: float, top_y: float, width: float, height: float, facing: int) -> pygame.Rect:
+    if facing >= 0:
+        x = center_x
+    else:
+        x = center_x - width
+    return pygame.Rect(int(x), int(top_y), int(width), int(height))
 
 
 class GunnerCharacter(BaseCharacter):
@@ -40,17 +41,17 @@ class GunnerCharacter(BaseCharacter):
         fighter.attack_tick_timer = 0.0
         return True
 
-    # 콤보 연결기
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
             total_time=0.22,
             active_windows=[(0.00, 0.10)],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + 18 if f.facing == 1 else f.pos.x - 18 - 88),
-                int(f.pos.y + 16),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 18,
+                f.pos.y + 16,
                 88,
                 28,
+                f.facing,
             ),
             knockback_model=ScalingKnockback(
                 damage=6.0,
@@ -61,7 +62,6 @@ class GunnerCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 스타터: side -> down_air
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
@@ -71,11 +71,12 @@ class GunnerCharacter(BaseCharacter):
                 (0.32, 0.36),
                 (0.44, 0.48),
             ],
-            hitbox_factory=lambda f: pygame.Rect(
-                int(f.pos.x + 18 if f.facing == 1 else f.pos.x - 18 - 140),
-                int(f.pos.y - 12),
+            hitbox_factory=lambda f: _facing_rect(
+                f.pos.x + f.facing * 18,
+                f.pos.y - 12,
                 140,
                 18,
+                f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
@@ -88,7 +89,6 @@ class GunnerCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
@@ -109,7 +109,6 @@ class GunnerCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 스타터
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
@@ -136,7 +135,6 @@ class GunnerCharacter(BaseCharacter):
             allow_multi_hit=True,
         )
 
-    # 콤보 연결기
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
@@ -157,7 +155,6 @@ class GunnerCharacter(BaseCharacter):
             ),
         )
 
-    # 콤보 연결기: side -> down_air
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,

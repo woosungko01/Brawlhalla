@@ -56,6 +56,11 @@ def try_start_attack(fighter) -> None:
     if attack is None:
         return
 
+    # 지상 공격은 기본적으로 모멘텀 끊기
+    # 단, dash_velocity_x가 있는 자동 이동 공격은 제외
+    if fighter.is_grounded and attack.dash_velocity_x == 0.0:
+        fighter.vel.x = 0.0
+
     fighter.start_attack(attack)
 
 
@@ -115,12 +120,9 @@ def update_attack(attacker, targets: list, dt: float) -> None:
 
     attack = attacker.current_attack
 
-    if attack.locks_horizontal_movement:
-        attacker.vel.x = 0.0
-    elif attack.dash_velocity_x != 0.0:
+    # 자동 이동 공격만 강제로 이동
+    if attack.dash_velocity_x != 0.0:
         attacker.vel.x = attacker.facing * attack.dash_velocity_x
-    else:
-        attacker.vel.x = attacker.input.move_x * attacker.move_cfg.MAX_RUN_SPEED
 
     if attack.repeated_hit_interval is not None:
         if attacker.attack_tick_timer <= 0.0:
@@ -198,6 +200,8 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
             hitstun=effect.hitstun,
         )
     else:
+        target.pending_launch = None
+        target.stun_timer = 0.0
         target.vel.x = effect.vx
         target.vel.y = effect.vy
         target.hitstun_timer = effect.hitstun
