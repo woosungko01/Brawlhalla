@@ -1,9 +1,4 @@
-# rendering/match_renderer.py
-# 매치 렌더링 파일
-# - TrainingMatch / LocalVsMatch 둘 다 최대한 호환
-# - 1P/2P 또는 Player/Dummy 렌더
-# - 데미지 / stocks / 궁극기 상태 표시
-
+import os
 import pygame
 
 from systems.fighter_combat import get_attack_hitbox
@@ -31,14 +26,15 @@ class MatchRenderer:
 
     def __init__(self) -> None:
         self.fighter_renderer = FighterRenderer()
+        self._background_cache: dict[str, pygame.Surface] = {}
 
     def draw(self, surface: pygame.Surface, match, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:
         surface.fill(self.BG_COLOR)
 
+        self._draw_background(surface, match)
         self._draw_world(surface, match)
         self._draw_platforms(surface, match)
 
-        # LocalVsMatch 구조
         if hasattr(match, "player1") and hasattr(match, "player2"):
             self.fighter_renderer.update(match.player1, dt)
             self.fighter_renderer.update(match.player2, dt)
@@ -63,7 +59,6 @@ class MatchRenderer:
             pygame.display.flip()
             return
 
-        # TrainingMatch 구조 (기존 호환)
         self.fighter_renderer.update(match.player, dt)
         self.fighter_renderer.update(match.dummy, dt)
 
@@ -85,6 +80,40 @@ class MatchRenderer:
 
         pygame.display.flip()
 
+    def _draw_background(self, surface: pygame.Surface, match) -> None:
+        bg_path = getattr(match.stage, "background_path", None)
+        if not bg_path:
+            return
+
+        bg = self._load_background(bg_path)
+        if bg is None:
+            return
+
+        sx, sy = match.camera.world_to_screen(0, 0)
+        scaled = pygame.transform.scale(
+            bg,
+            (
+                int(match.stage.world_w * match.camera.zoom),
+                int(match.stage.world_h * match.camera.zoom),
+            ),
+        )
+        surface.blit(scaled, (sx, sy))
+
+    def _load_background(self, path: str) -> pygame.Surface | None:
+        if path in self._background_cache:
+            return self._background_cache[path]
+
+        if not os.path.exists(path):
+            return None
+
+        try:
+            img = pygame.image.load(path).convert()
+        except pygame.error:
+            return None
+
+        self._background_cache[path] = img
+        return img
+
     def _draw_world(self, surface: pygame.Surface, match) -> None:
         world_rect = pygame.Rect(
             int((-match.camera.x) * match.camera.zoom),
@@ -92,7 +121,7 @@ class MatchRenderer:
             int(match.stage.world_w * match.camera.zoom),
             int(match.stage.world_h * match.camera.zoom),
         )
-        pygame.draw.rect(surface, self.WORLD_BORDER_COLOR, world_rect, 3)
+        pygame.draw.rect(surface, self.WORLD_BORDER_COLOR, world_rect, 2)
 
     def _draw_platforms(self, surface: pygame.Surface, match) -> None:
         for plat in match.stage.platforms:
@@ -105,11 +134,9 @@ class MatchRenderer:
             )
 
             if getattr(plat, "is_soft", False):
-                pygame.draw.rect(surface, self.SOFT_PLATFORM_COLOR, rect)
-                pygame.draw.rect(surface, self.SOFT_PLATFORM_BORDER, rect, 2)
+                pygame.draw.rect(surface, self.SOFT_PLATFORM_COLOR, rect, 2)
             else:
-                pygame.draw.rect(surface, self.HARD_PLATFORM_COLOR, rect)
-                pygame.draw.rect(surface, self.HARD_PLATFORM_BORDER, rect, 2)
+                pygame.draw.rect(surface, self.HARD_PLATFORM_COLOR, rect, 2)
 
     def _draw_attack_hitbox(self, surface: pygame.Surface, fighter, camera) -> None:
         hitbox = get_attack_hitbox(fighter)

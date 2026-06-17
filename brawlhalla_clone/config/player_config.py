@@ -9,23 +9,23 @@ class MovementConfig:
     """수평 이동 관련 수치"""
 
     # 가속도 (pixels/sec²)
-    GROUND_ACCEL: float = 5000.0
-    AIR_ACCEL: float = 2800.0
+    GROUND_ACCEL: float = 4300.0
+    AIR_ACCEL: float = 2380.0
 
     # 감속 (pixels/sec²)
-    GROUND_FRICTION: float = 4500.0
-    AIR_DRAG: float = 150.0
+    GROUND_FRICTION: float = 3950.0
+    AIR_DRAG: float = 125.0
 
     # 최대 속도 (pixels/sec)
-    MAX_RUN_SPEED: float = 600.0
-    MAX_AIR_SPEED: float = 600.0
+    MAX_RUN_SPEED: float = 520.0
+    MAX_AIR_SPEED: float = 520.0
 
 
 class JumpConfig:
     """점프 관련 수치"""
 
     # 점프력 (pixels/sec, 위 방향이 음수)
-    JUMP_SPEED: float = 1100.0
+    JUMP_SPEED: float = 970.0
 
     # 다중 점프 횟수 (지상 점프 제외, 순수 공중 추가 점프 수)
     MAX_AIR_JUMPS: int = 2
@@ -40,14 +40,14 @@ class JumpConfig:
 class GravityConfig:
     """중력 / 낙하 관련 수치"""
 
-    GRAVITY: float = 3000.0
-    MAX_FALL_SPEED: float = 700.0
+    GRAVITY: float = 2680.0
+    MAX_FALL_SPEED: float = 625.0
 
-    FAST_FALL_ACCEL_BONUS: float = 4200.0
-    FAST_FALL_TERMINAL_SPEED: float = 1100.0
+    FAST_FALL_ACCEL_BONUS: float = 3650.0
+    FAST_FALL_TERMINAL_SPEED: float = 970.0
 
     # 벽에 붙어 있을 때 최대 미끄러짐 속도
-    WALL_SLIDE_SPEED: float = 180.0
+    WALL_SLIDE_SPEED: float = 160.0
     WALL_DETACH_GRACE_TIME: float = 0.06
 
 
@@ -58,8 +58,8 @@ class DashConfig:
     DASH_TIME: float = 0.12
 
     # 대시 속도
-    DASH_SPEED: float = 1000.0
-    SPRINT_SPEED: float = 800.0
+    DASH_SPEED: float = 840.0
+    SPRINT_SPEED: float = 680.0
 
     # 연속 지상 dash 재사용 제한
     GROUND_CHAIN_REUSE: float = 25 / 60
@@ -69,6 +69,7 @@ class DashConfig:
 
     # 땅 근처 snap dash 허용 거리
     GROUND_SNAP_DIST: float = 50.0
+
 
 class PlayerConfig:
     WIDTH: int = 60
@@ -90,4 +91,4 @@ class DodgeConfig:
     AIR_DODGE_INVULN_TIME: float = 0.20
 
     # 공중 방향 dodge 고정 이동 속도
-    AIR_DODGE_SPEED: float = 780.0
+    AIR_DODGE_SPEED: float = 660.0

@@ -1,5 +1,3 @@
-# systems/dodge.py
-
 from __future__ import annotations
 import math
 
@@ -37,7 +35,7 @@ def try_request_dodge(fighter: Fighter) -> bool:
     - 지상 + 방향 입력 -> dodge 아님 (상위에서 dash 처리)
     - 공중 + 무방향 -> air spot dodge
     - 공중 + 방향 입력 -> air directional dodge
-    성공 시 True
+    성공 시 True, 아니면 False
     """
     if not can_start_dodge(fighter):
         return False
@@ -45,7 +43,8 @@ def try_request_dodge(fighter: Fighter) -> bool:
     move_x = fighter.input.move_x
     move_y = int(fighter.input.down) - int(fighter.input.up)
 
-    # 지상
+    # 지상: 방향이 있으면 dodge 시작하지 말고 False 반환
+    # 그러면 상위 로직에서 dash를 시도할 수 있다.
     if fighter.is_grounded:
         if move_x == 0 and move_y == 0:
             _begin_spot_dodge(fighter)
@@ -129,8 +128,6 @@ def cancel_dodge(fighter: Fighter) -> None:
 def end_dodge(fighter: Fighter) -> None:
     cancel_dodge(fighter)
 
-    # 공중 directional dodge 끝난 뒤 속도를 약간 남길지 여부는 취향
-    # 지금은 자동 종료 후 현재 vel 유지 대신 0으로 정리
     fighter.vel.x = 0.0
     if fighter.is_grounded:
         fighter.vel.y = 0.0

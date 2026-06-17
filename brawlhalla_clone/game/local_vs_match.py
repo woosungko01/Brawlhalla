@@ -1,10 +1,3 @@
-# game/local_vs_match.py
-# 로컬 2인 대전 매치 파일
-# - player1 vs player2
-# - stocks 3개
-# - KO / respawn / winner 판정
-# - 데미지 기반 카메라 zoom out
-
 from __future__ import annotations
 
 import pygame
@@ -40,6 +33,7 @@ from systems.fighter_combat import (
     try_start_attack,
     try_start_ultimate,
     update_attack,
+    apply_pending_launch_if_ready,
 )
 from systems.dodge import (
     tick_dodge_timers,
@@ -87,7 +81,6 @@ class LocalVsMatch:
         self.winner: PlayerFighter | None = None
         self.is_match_over = False
 
-        # 아래로 충분히 떨어졌다고 판단하는 KO 라인
         self.ko_bottom_y = self.stage.world_h + 220
 
         update_grounded(self.player1, self.stage.platforms)
@@ -122,6 +115,14 @@ class LocalVsMatch:
         tick_dash_timers(fighter, dt)
         tick_combat_timers(fighter, dt)
         tick_dodge_timers(fighter, dt)
+
+        apply_pending_launch_if_ready(fighter)
+
+        if fighter.hit_freeze_timer > 0.0:
+            fighter.vel.x = 0.0
+            fighter.vel.y = 0.0
+            update_move_state(fighter)
+            return
 
         if fighter.input.ultimate_pressed:
             try_start_ultimate(fighter)
@@ -186,9 +187,6 @@ class LocalVsMatch:
         update_move_state(fighter)
 
     def find_respawn_point(self, fallen_x: float, fighter_height: int) -> tuple[float, float]:
-        """
-        떨어진 x 위치와 가장 가까운 플랫폼 중심 위로 리스폰.
-        """
         best_platform = None
         best_dist = None
 
@@ -235,8 +233,6 @@ class LocalVsMatch:
 
     def update(self, dt: float) -> None:
         if self.is_match_over:
-            #max_percent = max(self.player1.damage.percent, self.player2.damage.percent)
-            #self.camera.set_target_zoom_from_damage(max_percent)
             self.camera.set_dual_target(
                 self.player1.pos.x, self.player1.pos.y,
                 self.player2.pos.x, self.player2.pos.y,
@@ -256,8 +252,4 @@ class LocalVsMatch:
         )
 
     def draw(self, surface: pygame.Surface, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:
-        """
-        LocalVsMatch 자신을 그대로 렌더러에 넘긴다.
-        MatchRenderer가 player1 / player2 구조를 직접 처리하도록 한다.
-        """
         self.renderer.draw(surface, self, dt, font, draw_debug_hud_fn)

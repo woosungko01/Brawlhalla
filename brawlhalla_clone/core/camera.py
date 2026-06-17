@@ -1,6 +1,3 @@
-# core/camera.py
-# 1인 추적 + 2인 추적 + 데미지 기반 zoom out 지원 카메라 파일
-
 class Camera:
     def __init__(self, screen_w: int, screen_h: int,
                  world_w: int, world_h: int) -> None:
@@ -12,21 +9,18 @@ class Camera:
         self.world_w = world_w
         self.world_h = world_h
 
-        # 따라가는 강도
-        self.follow_x: float = 0.12
-        self.follow_y: float = 0.10
+        self.follow_x: float = 0.14
+        self.follow_y: float = 0.12
 
-        # zoom
-        # 1.0 = 기본, 낮을수록 더 넓게 보임(zoom out)
-        self.zoom: float = 1.0
-        self.target_zoom: float = 1.0
+        # 이전보다 조금 더 줌인
+        self.zoom: float = 1.26
+        self.target_zoom: float = 1.26
         self.zoom_lerp: float = 0.10
 
-        self.min_zoom: float = 0.60
-        self.max_zoom: float = 1.15
+        self.min_zoom: float = 0.94
+        self.max_zoom: float = 1.40
 
     def update(self, target_x: float, target_y: float) -> None:
-        """기본 1인 추적"""
         desired_x = target_x - (self.screen_w / self.zoom) / 2
         desired_y = (target_y - 40) - (self.screen_h / self.zoom) / 2
 
@@ -37,7 +31,6 @@ class Camera:
         self.clamp_to_world()
 
     def set_dual_target(self, x1: float, y1: float, x2: float, y2: float) -> None:
-        """두 플레이어의 중간 지점을 기준으로 카메라 이동"""
         mid_x = (x1 + x2) * 0.5
         mid_y = (y1 + y2) * 0.5
 
@@ -51,7 +44,14 @@ class Camera:
         self.clamp_to_world()
 
     def set_target_zoom_from_damage(self, max_percent: float) -> None:
-        self.target_zoom = 1.0
+        if max_percent < 40:
+            self.target_zoom = 1.26
+        elif max_percent < 80:
+            self.target_zoom = 1.20
+        elif max_percent < 140:
+            self.target_zoom = 1.10
+        else:
+            self.target_zoom = 1.00
 
     def _update_zoom(self) -> None:
         self.zoom += (self.target_zoom - self.zoom) * self.zoom_lerp

@@ -74,9 +74,9 @@ class SwordsmanCharacter(BaseCharacter):
                 (0.50, 0.54),
             ],
             hitbox_factory=lambda f: _facing_rect(
-                f.pos.x + f.facing * 18,
+                f.pos.x + f.facing * 12,
                 f.pos.y - 16,
-                70,
+                64,
                 42,
                 f.facing,
             ),
@@ -89,7 +89,7 @@ class SwordsmanCharacter(BaseCharacter):
                 delayed_launch=True,
             ),
             locks_horizontal_movement=False,
-            dash_velocity_x=1250.0,
+            dash_velocity_x=880.0,
             dash_start_time=0.27,
             allow_multi_hit=True,
         )

@@ -1,5 +1,3 @@
-# game/training_match.py
-
 import pygame
 
 from core.camera import Camera
@@ -27,6 +25,7 @@ from systems.collision import (
     handle_wall_touch,
     handle_wall_detach_inputs,
     is_standing_on_soft_platform,
+    snap_to_ground,
 )
 from systems.state_machine import update_move_state
 from systems.fighter_combat import (
@@ -42,6 +41,7 @@ from systems.dodge import (
     update_dodge,
     cancel_dodge,
 )
+from systems.dash import tick_dash_timers, try_request_dash, update_dash
 from rendering.match_renderer import MatchRenderer
 
 
@@ -141,6 +141,8 @@ class TrainingMatch:
             return
         if fighter.hitstun_timer > 0.0 or fighter.stun_timer > 0.0:
             return
+        if fighter.hit_freeze_timer > 0.0:
+            return
 
         action = fighter.stored_followup_action
         fighter.stored_followup_action = None
@@ -157,7 +159,9 @@ class TrainingMatch:
             fighter.input.up = action.move_y < 0
             fighter.input.down = action.move_y > 0
 
-            try_request_dodge(fighter)
+            dodge_started = try_request_dodge(fighter)
+            if not dodge_started:
+                try_request_dash(fighter)
 
             fighter.input.left = original_left
             fighter.input.right = original_right
@@ -171,10 +175,17 @@ class TrainingMatch:
         fighter.was_grounded = fighter.is_grounded
 
         self.tick_timers(fighter, dt)
+        tick_dash_timers(fighter, dt)
         tick_combat_timers(fighter, dt)
         tick_dodge_timers(fighter, dt)
 
         apply_pending_launch_if_ready(fighter)
+
+        if fighter.hit_freeze_timer > 0.0:
+            fighter.vel.x = 0.0
+            fighter.vel.y = 0.0
+            update_move_state(fighter)
+            return
 
         if fighter.stun_timer > 0.0:
             fighter.vel.x = 0.0
@@ -220,7 +231,19 @@ class TrainingMatch:
             )
 
             if not fighter.is_attacking:
-                try_request_dodge(fighter)
+                dodge_started = try_request_dodge(fighter)
+
+                if not dodge_started:
+                    if (
+                        not fighter.is_grounded
+                        and fighter.input.down
+                        and fighter.fast_fall_lock_timer <= 0.0
+                        and fighter.vel.y >= 0.0
+                        and fighter.near_ground
+                    ):
+                        snap_to_ground(fighter, self.stage.platforms)
+
+                    try_request_dash(fighter)
 
         if (
             fighter.input.jump_pressed
@@ -238,6 +261,8 @@ class TrainingMatch:
             update_attack(fighter, targets, dt)
         elif fighter.is_dodging:
             update_dodge(fighter, dt)
+        elif fighter.is_dashing:
+            update_dash(fighter, dt)
         else:
             apply_horizontal_control(fighter, dt)
 
@@ -266,10 +291,17 @@ class TrainingMatch:
         d.was_grounded = d.is_grounded
 
         self.tick_timers(d, dt)
+        tick_dash_timers(d, dt)
         tick_combat_timers(d, dt)
         tick_dodge_timers(d, dt)
 
         apply_pending_launch_if_ready(d)
+
+        if d.hit_freeze_timer > 0.0:
+            d.vel.x = 0.0
+            d.vel.y = 0.0
+            update_move_state(d)
+            return
 
         if d.stun_timer > 0.0:
             d.vel.x = 0.0
@@ -291,6 +323,8 @@ class TrainingMatch:
             pass
         elif d.is_dodging:
             update_dodge(d, dt)
+        elif d.is_dashing:
+            update_dash(d, dt)
         else:
             if abs(d.vel.x) > 0.0:
                 if d.is_grounded:
