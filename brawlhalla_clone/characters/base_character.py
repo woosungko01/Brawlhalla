@@ -1,5 +1,3 @@
-#characters/base_character
-
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import pygame
@@ -26,11 +24,13 @@ class BaseCharacter(ABC):
                 return AttackSlot.SIDE
             return AttackSlot.NEUTRAL
 
+        if fighter.input.up:
+            return AttackSlot.UP
         if fighter.input.down:
             return AttackSlot.DOWN_AIR
         if fighter.input.move_x != 0:
             return AttackSlot.SIDE
-        return AttackSlot.UP_AIR
+        return AttackSlot.NEUTRAL
 
     @abstractmethod
     def get_attack_for_slot(self, slot: AttackSlot) -> AttackData | None:

@@ -1,5 +1,3 @@
-# characters/brawler.py
-
 from __future__ import annotations
 import pygame
 
@@ -42,8 +40,8 @@ class BrawlerCharacter(BaseCharacter):
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
-            total_time=0.34,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.49,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 34,
                 f.pos.y - 30,
@@ -53,45 +51,48 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
-                base_vx=200.0,
-                base_vy=-380.0,
-                hitstun=0.22,
-                percent_scale=0.012,
+                base_vx=250.0,
+                base_vy=-460.0,
+                hitstun=0.24,
+                percent_scale=0.020,
             ),
         )
 
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.48,
+            total_time=0.72,
             active_windows=[
-                (0.20, 0.24),
-                (0.32, 0.36),
-                (0.44, 0.48),
+                (0.33, 0.39),
+                (0.44, 0.50),
+                (0.55, 0.61),
             ],
             hitbox_factory=lambda f: _facing_rect(
-                f.pos.x + f.facing * 44,
-                f.pos.y - 10,
-                74,
-                40,
+                f.pos.x + f.facing * 12,
+                f.pos.y - 12,
+                72,
+                42,
                 f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
-                vx=90.0,
-                vy=-70.0,
-                hitstun=0.30,
-                stun=0.40,
+                vx=150.0,
+                vy=-95.0,
+                hitstun=0.38,
+                stun=0.58,
                 delayed_launch=True,
             ),
+            locks_horizontal_movement=False,
+            dash_velocity_x=880.0,
+            dash_start_time=0.29,
             allow_multi_hit=True,
         )
 
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
-            total_time=0.34,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.49,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 26,
                 f.pos.y - 86,
@@ -101,21 +102,21 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=10.0,
-                base_vx=120.0,
-                base_vy=-520.0,
-                hitstun=0.22,
-                percent_scale=0.013,
+                base_vx=150.0,
+                base_vy=-640.0,
+                hitstun=0.24,
+                percent_scale=0.022,
             ),
         )
 
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
-            total_time=0.48,
+            total_time=0.63,
             active_windows=[
-                (0.18, 0.22),
-                (0.28, 0.32),
-                (0.38, 0.42),
+                (0.33, 0.38),
+                (0.43, 0.48),
+                (0.53, 0.58),
             ],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 26,
@@ -126,22 +127,23 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=70.0,
-                vy=-90.0,
-                hitstun=0.28,
-                stun=0.38,
+                vx=100.0,
+                vy=-120.0,
+                hitstun=0.36,
+                stun=0.54,
                 delayed_launch=True,
             ),
             locks_horizontal_movement=False,
             dash_velocity_x=180.0,
+            dash_start_time=0.30,
             allow_multi_hit=True,
         )
 
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
-            total_time=0.38,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.53,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 32,
                 f.pos.y + 6,
@@ -151,23 +153,24 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=10.0,
-                base_vx=220.0,
-                base_vy=-160.0,
-                hitstun=0.20,
-                percent_scale=0.014,
+                base_vx=280.0,
+                base_vy=-220.0,
+                hitstun=0.22,
+                percent_scale=0.022,
             ),
             locks_horizontal_movement=False,
             dash_velocity_x=260.0,
+            dash_start_time=0.14,
         )
 
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
-            total_time=0.46,
+            total_time=0.61,
             active_windows=[
-                (0.16, 0.20),
-                (0.26, 0.30),
-                (0.36, 0.40),
+                (0.31, 0.36),
+                (0.41, 0.46),
+                (0.51, 0.56),
             ],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 28,
@@ -178,13 +181,14 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=80.0,
-                vy=90.0,
-                hitstun=0.26,
-                stun=0.36,
+                vx=110.0,
+                vy=130.0,
+                hitstun=0.34,
+                stun=0.52,
                 delayed_launch=True,
             ),
             locks_horizontal_movement=False,
             dash_velocity_x=240.0,
+            dash_start_time=0.28,
             allow_multi_hit=True,
         )

@@ -1,5 +1,3 @@
-# entities/fighter.py
-
 from __future__ import annotations
 
 from entities.entity import Entity
@@ -68,7 +66,6 @@ class Fighter(Entity):
         self.attack_extra_fired = False
         self.attack_tick_timer = 0.0
 
-        # 공격 히트 후 전용 preinput
         self.can_attack_prestore = False
         self.stored_followup_action: FollowupAction | None = None
 
@@ -100,6 +97,8 @@ class Fighter(Entity):
 
         self.player_index = 0
         self.is_controllable = True
+
+        self.hit_freeze_timer = 0.0
 
     def start_attack(self, attack_data) -> None:
         self.is_attacking = True
@@ -134,6 +133,7 @@ class Fighter(Entity):
         self.stun_timer = 0.0
         self.hitstun_timer = 0.0
         self.pending_launch = None
+        self.hit_freeze_timer = 0.0
 
         self.is_dashing = False
         self.dash_timer = 0.0
@@ -178,4 +178,5 @@ class Fighter(Entity):
         self.air_dodge_available = True
         self.left_ground_since_dash = True
 
+        self.hit_freeze_timer = 0.0
         self.reset_combat_state()

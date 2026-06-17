@@ -1,5 +1,3 @@
-# characters/swordsman.py
-
 from __future__ import annotations
 import pygame
 
@@ -42,11 +40,11 @@ class SwordsmanCharacter(BaseCharacter):
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
-            total_time=0.44,
+            total_time=0.59,
             active_windows=[
-                (0.16, 0.20),
-                (0.26, 0.30),
-                (0.36, 0.40),
+                (0.31, 0.35),
+                (0.41, 0.45),
+                (0.51, 0.55),
             ],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 24,
@@ -57,10 +55,10 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=70.0,
-                vy=-70.0,
-                hitstun=0.28,
-                stun=0.36,
+                vx=95.0,
+                vy=-95.0,
+                hitstun=0.36,
+                stun=0.56,
                 delayed_launch=True,
             ),
             allow_multi_hit=True,
@@ -69,35 +67,38 @@ class SwordsmanCharacter(BaseCharacter):
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.48,
+            total_time=0.66,
             active_windows=[
-                (0.20, 0.24),
-                (0.32, 0.36),
-                (0.44, 0.48),
+                (0.30, 0.34),
+                (0.40, 0.44),
+                (0.50, 0.54),
             ],
             hitbox_factory=lambda f: _facing_rect(
-                f.pos.x + f.facing * 58,
-                f.pos.y - 14,
-                90,
+                f.pos.x + f.facing * 18,
+                f.pos.y - 16,
+                70,
                 42,
                 f.facing,
             ),
             knockback_model=FixedKnockback(
                 damage=15.0,
-                vx=80.0,
-                vy=-80.0,
-                hitstun=0.30,
-                stun=0.40,
+                vx=125.0,
+                vy=-100.0,
+                hitstun=0.38,
+                stun=0.60,
                 delayed_launch=True,
             ),
+            locks_horizontal_movement=False,
+            dash_velocity_x=1250.0,
+            dash_start_time=0.27,
             allow_multi_hit=True,
         )
 
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
-            total_time=0.34,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.49,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 14,
                 f.pos.y - 88,
@@ -107,21 +108,21 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
-                base_vx=110.0,
-                base_vy=-640.0,
-                hitstun=0.24,
-                percent_scale=0.013,
+                base_vx=150.0,
+                base_vy=-760.0,
+                hitstun=0.26,
+                percent_scale=0.022,
             ),
         )
 
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
-            total_time=0.48,
+            total_time=0.63,
             active_windows=[
-                (0.18, 0.22),
-                (0.28, 0.32),
-                (0.38, 0.42),
+                (0.33, 0.38),
+                (0.43, 0.48),
+                (0.53, 0.58),
             ],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 20,
@@ -132,10 +133,10 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
-                vx=70.0,
-                vy=-100.0,
-                hitstun=0.30,
-                stun=0.40,
+                vx=100.0,
+                vy=-135.0,
+                hitstun=0.37,
+                stun=0.58,
                 delayed_launch=True,
             ),
             allow_multi_hit=True,
@@ -144,8 +145,8 @@ class SwordsmanCharacter(BaseCharacter):
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
-            total_time=0.36,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.51,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 38,
                 f.pos.y + 8,
@@ -155,18 +156,18 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=11.0,
-                base_vx=160.0,
-                base_vy=420.0,
-                hitstun=0.22,
-                percent_scale=0.014,
+                base_vx=220.0,
+                base_vy=520.0,
+                hitstun=0.24,
+                percent_scale=0.023,
             ),
         )
 
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
-            total_time=0.36,
-            active_windows=[(0.00, 0.12)],
+            total_time=0.51,
+            active_windows=[(0.15, 0.27)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 22,
                 f.pos.y + 16,
@@ -176,10 +177,10 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=12.0,
-                base_vx=120.0,
-                base_vy=520.0,
-                hitstun=0.24,
-                percent_scale=0.014,
+                base_vx=170.0,
+                base_vy=640.0,
+                hitstun=0.26,
+                percent_scale=0.023,
             ),
         )
 

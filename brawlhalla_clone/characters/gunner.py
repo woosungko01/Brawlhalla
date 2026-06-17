@@ -1,5 +1,3 @@
-# characters/gunner.py
-
 from __future__ import annotations
 import pygame
 
@@ -44,8 +42,8 @@ class GunnerCharacter(BaseCharacter):
     def _neutral(self) -> AttackData:
         return AttackData(
             name=AttackSlot.NEUTRAL.value,
-            total_time=0.22,
-            active_windows=[(0.00, 0.10)],
+            total_time=0.37,
+            active_windows=[(0.15, 0.25)],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 18,
                 f.pos.y + 16,
@@ -55,21 +53,21 @@ class GunnerCharacter(BaseCharacter):
             ),
             knockback_model=ScalingKnockback(
                 damage=6.0,
-                base_vx=120.0,
-                base_vy=40.0,
-                hitstun=0.10,
-                percent_scale=0.010,
+                base_vx=155.0,
+                base_vy=55.0,
+                hitstun=0.12,
+                percent_scale=0.018,
             ),
         )
 
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.48,
+            total_time=0.63,
             active_windows=[
-                (0.20, 0.24),
-                (0.32, 0.36),
-                (0.44, 0.48),
+                (0.35, 0.39),
+                (0.45, 0.49),
+                (0.55, 0.59),
             ],
             hitbox_factory=lambda f: _facing_rect(
                 f.pos.x + f.facing * 18,
@@ -80,10 +78,10 @@ class GunnerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
-                vx=70.0,
-                vy=-60.0,
-                hitstun=0.28,
-                stun=0.38,
+                vx=95.0,
+                vy=-85.0,
+                hitstun=0.36,
+                stun=0.56,
                 delayed_launch=True,
             ),
             allow_multi_hit=True,
@@ -92,8 +90,8 @@ class GunnerCharacter(BaseCharacter):
     def _up(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP.value,
-            total_time=0.24,
-            active_windows=[(0.00, 0.10)],
+            total_time=0.39,
+            active_windows=[(0.15, 0.25)],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x - 62),
                 int(f.pos.y - 112),
@@ -103,20 +101,20 @@ class GunnerCharacter(BaseCharacter):
             knockback_model=ScalingKnockback(
                 damage=8.0,
                 base_vx=0.0,
-                base_vy=-520.0,
-                hitstun=0.14,
-                percent_scale=0.012,
+                base_vy=-640.0,
+                hitstun=0.16,
+                percent_scale=0.020,
             ),
         )
 
     def _up_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.UP_AIR.value,
-            total_time=0.46,
+            total_time=0.61,
             active_windows=[
-                (0.16, 0.20),
-                (0.26, 0.30),
-                (0.36, 0.40),
+                (0.31, 0.35),
+                (0.41, 0.45),
+                (0.51, 0.55),
             ],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x - 62),
@@ -127,9 +125,9 @@ class GunnerCharacter(BaseCharacter):
             knockback_model=FixedKnockback(
                 damage=13.0,
                 vx=0.0,
-                vy=-80.0,
-                hitstun=0.26,
-                stun=0.36,
+                vy=-120.0,
+                hitstun=0.34,
+                stun=0.54,
                 delayed_launch=True,
             ),
             allow_multi_hit=True,
@@ -138,8 +136,8 @@ class GunnerCharacter(BaseCharacter):
     def _down_ground(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_GROUND.value,
-            total_time=0.24,
-            active_windows=[(0.00, 0.10)],
+            total_time=0.39,
+            active_windows=[(0.15, 0.25)],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x - 62),
                 int(f.pos.y + 20),
@@ -149,17 +147,17 @@ class GunnerCharacter(BaseCharacter):
             knockback_model=ScalingKnockback(
                 damage=8.0,
                 base_vx=0.0,
-                base_vy=540.0,
-                hitstun=0.14,
-                percent_scale=0.012,
+                base_vy=670.0,
+                hitstun=0.16,
+                percent_scale=0.020,
             ),
         )
 
     def _down_air(self) -> AttackData:
         return AttackData(
             name=AttackSlot.DOWN_AIR.value,
-            total_time=0.24,
-            active_windows=[(0.00, 0.10)],
+            total_time=0.39,
+            active_windows=[(0.15, 0.25)],
             hitbox_factory=lambda f: pygame.Rect(
                 int(f.pos.x - 62),
                 int(f.pos.y + 28),
@@ -169,9 +167,9 @@ class GunnerCharacter(BaseCharacter):
             knockback_model=ScalingKnockback(
                 damage=9.0,
                 base_vx=0.0,
-                base_vy=620.0,
-                hitstun=0.16,
-                percent_scale=0.014,
+                base_vy=760.0,
+                hitstun=0.18,
+                percent_scale=0.021,
             ),
         )
 

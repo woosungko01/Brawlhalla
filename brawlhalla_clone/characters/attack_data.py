@@ -1,7 +1,5 @@
-# characters/attack_data.py
-
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 import pygame
@@ -17,5 +15,6 @@ class AttackData:
     knockback_model: KnockbackModel
     locks_horizontal_movement: bool = True
     dash_velocity_x: float = 0.0
+    dash_start_time: float = 0.0
     repeated_hit_interval: float | None = None
     allow_multi_hit: bool = False

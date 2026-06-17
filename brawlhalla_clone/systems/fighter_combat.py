@@ -1,10 +1,11 @@
-# systems/fighter_combat.py
-
 import pygame
 from combat.pending_effects import PendingLaunch
 
 
 def tick_combat_timers(fighter, dt: float) -> None:
+    if fighter.hit_freeze_timer > 0.0:
+        fighter.hit_freeze_timer = max(0.0, fighter.hit_freeze_timer - dt)
+
     if fighter.attack_timer > 0.0:
         fighter.attack_timer = max(0.0, fighter.attack_timer - dt)
 
@@ -22,6 +23,9 @@ def tick_combat_timers(fighter, dt: float) -> None:
 
 
 def apply_pending_launch_if_ready(fighter) -> None:
+    if fighter.hit_freeze_timer > 0.0:
+        return
+
     if fighter.stun_timer > 0.0:
         return
 
@@ -43,6 +47,8 @@ def try_start_attack(fighter) -> None:
         return
     if fighter.hitstun_timer > 0.0:
         return
+    if fighter.hit_freeze_timer > 0.0:
+        return
     if getattr(fighter, "is_dead", False):
         return
 
@@ -62,6 +68,8 @@ def try_start_ultimate(fighter) -> None:
     if fighter.stun_timer > 0.0:
         return
     if fighter.hitstun_timer > 0.0:
+        return
+    if fighter.hit_freeze_timer > 0.0:
         return
     if getattr(fighter, "is_dead", False):
         return
@@ -99,6 +107,13 @@ def get_attack_hitbox(fighter):
 
 
 def update_attack(attacker, targets: list, dt: float) -> None:
+    if attacker.hit_freeze_timer > 0.0:
+        attacker.vel.x = 0.0
+        attacker.vel.y = 0.0
+        if attacker.attack_timer <= 0.0:
+            attacker.end_attack()
+        return
+
     if attacker.stun_timer > 0.0:
         attacker.vel.x = 0.0
         attacker.vel.y = 0.0
@@ -111,9 +126,13 @@ def update_attack(attacker, targets: list, dt: float) -> None:
         return
 
     attack = attacker.current_attack
+    elapsed = attacker.attack_total_time - attacker.attack_timer
 
     if attack.dash_velocity_x != 0.0:
-        attacker.vel.x = attacker.facing * attack.dash_velocity_x
+        if elapsed >= attack.dash_start_time:
+            attacker.vel.x = attacker.facing * attack.dash_velocity_x
+        else:
+            attacker.vel.x = 0.0
 
     if attack.repeated_hit_interval is not None:
         if attacker.attack_tick_timer <= 0.0:
@@ -167,6 +186,9 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
     if getattr(target, "invuln_timer", 0.0) > 0.0:
         return False
 
+    if getattr(target, "hit_freeze_timer", 0.0) > 0.0:
+        return False
+
     target_rect = pygame.Rect(
         int(target.rect_x),
         int(target.rect_y),
@@ -181,21 +203,29 @@ def try_hit_target(attacker, target, hitbox: pygame.Rect) -> bool:
 
     target.damage.add_damage(effect.damage)
 
-    if effect.delayed_launch and effect.stun > 0.0:
-        target.vel.x = 0.0
-        target.vel.y = 0.0
+    target.vel.x = 0.0
+    target.vel.y = 0.0
+    target.hitstun_timer = 0.0
+
+    if effect.stun > 0.0:
         target.stun_timer = effect.stun
-        target.pending_launch = PendingLaunch(
-            vx=effect.vx,
-            vy=effect.vy,
-            hitstun=effect.hitstun,
-        )
     else:
-        target.pending_launch = None
         target.stun_timer = 0.0
-        target.vel.x = effect.vx
-        target.vel.y = effect.vy
-        target.hitstun_timer = effect.hitstun
+
+    target.pending_launch = PendingLaunch(
+        vx=effect.vx,
+        vy=effect.vy,
+        hitstun=effect.hitstun,
+    )
+
+    remaining = attacker.attack_timer
+    attacker.hit_freeze_timer = max(attacker.hit_freeze_timer, remaining)
+    target.hit_freeze_timer = max(target.hit_freeze_timer, remaining)
+
+    attacker.vel.x = 0.0
+    attacker.vel.y = 0.0
+    target.vel.x = 0.0
+    target.vel.y = 0.0
 
     attacker.attack_has_hit = True
     attacker.can_attack_prestore = True
