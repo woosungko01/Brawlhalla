@@ -193,6 +193,49 @@ class MatchRenderer:
                 ),
             )
 
+    def _draw_damage_bars(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+        p1 = match.player1
+        p2 = match.player2
+
+        margin = 20
+        bar_w = 220
+        bar_h = 18
+        gap = 12
+
+        # 오른쪽 위 기준
+        x = surface.get_width() - bar_w - margin
+        y1 = 20
+        y2 = y1 + bar_h + gap + 18
+
+        # 0~200%를 0~1로 매핑
+        p1_ratio = min(p1.damage.percent / 200.0, 1.0)
+        p2_ratio = min(p2.damage.percent / 200.0, 1.0)
+
+        # 배경 바
+        bg1 = pygame.Rect(x, y1, bar_w, bar_h)
+        bg2 = pygame.Rect(x, y2, bar_w, bar_h)
+        pygame.draw.rect(surface, (60, 60, 60), bg1, border_radius=6)
+        pygame.draw.rect(surface, (60, 60, 60), bg2, border_radius=6)
+
+        # 실제 데미지 바
+        fill1 = pygame.Rect(x, y1, int(bar_w * p1_ratio), bar_h)
+        fill2 = pygame.Rect(x, y2, int(bar_w * p2_ratio), bar_h)
+
+        # player1 = 빨간색, player2 = 파란색
+        pygame.draw.rect(surface, (220, 70, 70), fill1, border_radius=6)
+        pygame.draw.rect(surface, (70, 140, 255), fill2, border_radius=6)
+
+        # 테두리
+        pygame.draw.rect(surface, (220, 220, 220), bg1, 2, border_radius=6)
+        pygame.draw.rect(surface, (220, 220, 220), bg2, 2, border_radius=6)
+
+        # 텍스트
+        p1_text = font.render(f"P1 {p1.damage.percent:.1f}%", True, (255, 230, 230))
+        p2_text = font.render(f"P2 {p2.damage.percent:.1f}%", True, (230, 240, 255))
+
+        surface.blit(p1_text, (x, y1 - 18))
+        surface.blit(p2_text, (x, y2 - 18))
+
     def _draw_single_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
         if match.player.ultimate_timer > 0.0:
             ult_surf = font.render("ULT ACTIVE", True, (255, 220, 120))
@@ -210,6 +253,8 @@ class MatchRenderer:
 
         surface.blit(p1_surf, (20, 20))
         surface.blit(p2_surf, (20, 44))
+
+        self._draw_damage_bars(surface, match, font)
 
         if p1.ultimate_timer > 0.0:
             ult1 = font.render("P1 ULT ACTIVE", True, (255, 220, 120))
