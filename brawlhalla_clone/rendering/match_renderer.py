@@ -1,4 +1,5 @@
 import os
+import random
 import pygame
 
 from systems.fighter_combat import get_attack_hitbox
@@ -31,6 +32,14 @@ class MatchRenderer:
     def draw(self, surface: pygame.Surface, match, dt: float, font: pygame.font.Font, draw_debug_hud_fn) -> None:
         surface.fill(self.BG_COLOR)
 
+        original_cam_x = match.camera.x
+        original_cam_y = match.camera.y
+
+        if getattr(match, "camera_shake_timer", 0.0) > 0.0:
+            strength = getattr(match, "camera_shake_strength", 0.0)
+            match.camera.x += random.uniform(-strength, strength)
+            match.camera.y += random.uniform(-strength, strength)
+
         self._draw_background(surface, match)
         self._draw_world(surface, match)
         self._draw_platforms(surface, match)
@@ -52,10 +61,13 @@ class MatchRenderer:
             self._draw_attack_hitbox(surface, match.player1, match.camera)
             self._draw_attack_hitbox(surface, match.player2, match.camera)
             self._draw_vs_ui(surface, match, font)
+            self._draw_ko_banner(surface, match)
 
             if getattr(match, "show_hud", False):
                 draw_debug_hud_fn(surface, match.player1)
 
+            match.camera.x = original_cam_x
+            match.camera.y = original_cam_y
             pygame.display.flip()
             return
 
@@ -78,6 +90,8 @@ class MatchRenderer:
         if match.show_hud:
             draw_debug_hud_fn(surface, match.player)
 
+        match.camera.x = original_cam_x
+        match.camera.y = original_cam_y
         pygame.display.flip()
 
     def _draw_background(self, surface: pygame.Surface, match) -> None:
@@ -218,3 +232,24 @@ class MatchRenderer:
                     20,
                 ),
             )
+
+    def _draw_ko_banner(self, surface: pygame.Surface, match) -> None:
+        text = getattr(match, "ko_banner_text", None)
+        timer = getattr(match, "ko_banner_timer", 0.0)
+
+        if not text or timer <= 0.0:
+            return
+
+        color = (255, 90, 90)
+        if "P2" in text:
+            color = (255, 170, 110)
+
+        banner_font = pygame.font.SysFont("monospace", 30, bold=True)
+        text_surf = banner_font.render(text, True, color)
+        shadow_surf = banner_font.render(text, True, (20, 20, 20))
+
+        x = surface.get_width() // 2 - text_surf.get_width() // 2
+        y = 18
+
+        surface.blit(shadow_surf, (x + 3, y + 3))
+        surface.blit(text_surf, (x, y))

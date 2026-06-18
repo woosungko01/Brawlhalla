@@ -81,10 +81,18 @@ class LocalVsMatch:
         self.winner: PlayerFighter | None = None
         self.is_match_over = False
 
+        # 4방향 KO 경계
         self.ko_left_x = -220
         self.ko_right_x = self.stage.world_w + 220
         self.ko_top_y = -220
         self.ko_bottom_y = self.stage.world_h + 220
+
+        # KO 연출 상태
+        self.ko_banner_text: str | None = None
+        self.ko_banner_timer = 0.0
+
+        self.camera_shake_timer = 0.0
+        self.camera_shake_strength = 0.0
 
         update_grounded(self.player1, self.stage.platforms)
         update_grounded(self.player2, self.stage.platforms)
@@ -215,6 +223,12 @@ class LocalVsMatch:
         fighter.is_ko = True
         fighter.stocks -= 1
 
+        self.ko_banner_text = f"P{fighter.player_index} KNOCKOUT!"
+        self.ko_banner_timer = 1.2
+
+        self.camera_shake_timer = 0.45
+        self.camera_shake_strength = 18.0
+
         if fighter.stocks <= 0:
             fighter.is_dead = True
             self.is_match_over = True
@@ -248,6 +262,14 @@ class LocalVsMatch:
 
     def update(self, dt: float) -> None:
         if self.is_match_over:
+            if self.ko_banner_timer > 0.0:
+                self.ko_banner_timer = max(0.0, self.ko_banner_timer - dt)
+                if self.ko_banner_timer <= 0.0:
+                    self.ko_banner_text = None
+
+            if self.camera_shake_timer > 0.0:
+                self.camera_shake_timer = max(0.0, self.camera_shake_timer - dt)
+
             self.camera.set_dual_target(
                 self.player1.pos.x, self.player1.pos.y,
                 self.player2.pos.x, self.player2.pos.y,
@@ -258,6 +280,14 @@ class LocalVsMatch:
         self.update_fighter(self.player2, [self.player1], dt)
 
         self.check_ko()
+
+        if self.ko_banner_timer > 0.0:
+            self.ko_banner_timer = max(0.0, self.ko_banner_timer - dt)
+            if self.ko_banner_timer <= 0.0:
+                self.ko_banner_text = None
+
+        if self.camera_shake_timer > 0.0:
+            self.camera_shake_timer = max(0.0, self.camera_shake_timer - dt)
 
         max_percent = max(self.player1.damage.percent, self.player2.damage.percent)
         self.camera.set_target_zoom_from_damage(max_percent)

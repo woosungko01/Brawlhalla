@@ -1,12 +1,6 @@
 # game/game_app.py
-# 게임 최상위 앱 파일
-# - 모드 선택 화면
-# - 캐릭터 선택 화면
-# - 로컬 2인 대전 시작
-# - 트레이닝 모드 시작
-# - 결과 화면
-# - 1P / 2P 입력 처리
 
+import os
 import sys
 import pygame
 
@@ -14,6 +8,7 @@ from core.input_state import InputState
 from game.training_match import TrainingMatch
 from game.local_vs_match import LocalVsMatch
 from utils.debug_hud import draw_debug_hud
+from rendering.fighter_renderer import FighterRenderer
 
 
 class GameApp:
@@ -37,6 +32,7 @@ class GameApp:
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("monospace", 13)
+        self.mid_font = pygame.font.SysFont("monospace", 18)
         self.big_font = pygame.font.SysFont("monospace", 26)
 
         self.scene = "mode_select"
@@ -46,6 +42,37 @@ class GameApp:
         self.p2_choice_index = 1
         self.p1_locked = False
         self.p2_locked = False
+
+        self.char_select_anim_time = 0.0
+
+        self.char_select_frames: dict[str, list[pygame.Surface]] = {}
+        self.podium_image: pygame.Surface | None = None
+
+        self._preload_character_select_assets()
+
+    def _preload_character_select_assets(self) -> None:
+        self._load_podium_image()
+        self._load_idle_frames_only()
+
+    def _load_podium_image(self) -> None:
+        path = os.path.join("assets", "ui", "character_podium.png")
+        if not os.path.exists(path):
+            self.podium_image = None
+            return
+
+        try:
+            self.podium_image = pygame.image.load(path).convert_alpha()
+        except pygame.error:
+            self.podium_image = None
+
+    def _load_idle_frames_only(self) -> None:
+        renderer = FighterRenderer()
+        for char_name in self.CHAR_OPTIONS:
+            sprite_set = renderer.sprite_sets.get(char_name, {})
+            self.char_select_frames[char_name] = sprite_set.get("idle", [])
+
+    def _get_idle_frames(self, character_id: str) -> list[pygame.Surface]:
+        return self.char_select_frames.get(character_id, [])
 
     def read_input_p1(self, inp: InputState, events: list[pygame.event.Event]) -> None:
         inp.reset_frame_events()
@@ -115,10 +142,9 @@ class GameApp:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
 
     def handle_mode_select_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
@@ -128,7 +154,6 @@ class GameApp:
             if event.key == pygame.K_1:
                 self.reset_to_character_select()
                 self.scene = "character_select"
-
             elif event.key == pygame.K_2:
                 self.start_training_match()
 
@@ -153,16 +178,16 @@ class GameApp:
 
     def handle_character_select_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
-            if not self.p1_locked and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    self.p1_choice_index = (self.p1_choice_index - 1) % len(self.CHAR_OPTIONS)
-                elif event.key == pygame.K_d:
-                    self.p1_choice_index = (self.p1_choice_index + 1) % len(self.CHAR_OPTIONS)
-                elif event.key == pygame.K_j:
-                    self.p1_locked = True
+            if event.type == pygame.KEYDOWN:
+                if not self.p1_locked:
+                    if event.key == pygame.K_a:
+                        self.p1_choice_index = (self.p1_choice_index - 1) % len(self.CHAR_OPTIONS)
+                    elif event.key == pygame.K_d:
+                        self.p1_choice_index = (self.p1_choice_index + 1) % len(self.CHAR_OPTIONS)
+                    elif event.key == pygame.K_j:
+                        self.p1_locked = True
 
-            if not self.p2_locked:
-                if event.type == pygame.KEYDOWN:
+                if not self.p2_locked:
                     if event.key == pygame.K_LEFT:
                         self.p2_choice_index = (self.p2_choice_index - 1) % len(self.CHAR_OPTIONS)
                     elif event.key == pygame.K_RIGHT:
@@ -170,12 +195,109 @@ class GameApp:
                     elif event.key == pygame.K_k:
                         self.p2_locked = True
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 3:
-                        self.p2_locked = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 3 and not self.p2_locked:
+                    self.p2_locked = True
 
-            if self.p1_locked and self.p2_locked:
-                self.start_local_vs_match()
+        if self.p1_locked and self.p2_locked:
+            self.start_local_vs_match()
+
+    def _draw_large_podium_preview(
+        self,
+        surface: pygame.Surface,
+        *,
+        center_x: int,
+        char_name: str,
+        player_label: str,
+        player_color: tuple[int, int, int],
+        locked: bool,
+    ) -> None:
+        podium_w = 330
+        podium_h = 520
+
+        # 화면 아래로 내림
+        preview_bottom_anchor = self.SCREEN_H + 180
+        podium_x = center_x - podium_w // 2
+        podium_y = preview_bottom_anchor - podium_h
+
+        if self.podium_image is not None:
+            podium = pygame.transform.smoothscale(self.podium_image, (podium_w, podium_h))
+            surface.blit(podium, (podium_x, podium_y))
+        else:
+            rect = pygame.Rect(podium_x, podium_y, podium_w, podium_h)
+            pygame.draw.rect(surface, (90, 100, 130), rect, border_radius=20)
+            pygame.draw.rect(surface, (150, 170, 220), rect, 4, border_radius=20)
+
+        frames = self._get_idle_frames(char_name)
+        if frames:
+            frame_time = 0.18
+            frame_index = int(self.char_select_anim_time / frame_time) % len(frames)
+            frame = frames[frame_index]
+
+            sprite_h = 240
+            sprite_w = int(frame.get_width() * (sprite_h / frame.get_height()))
+            sprite = pygame.transform.smoothscale(frame, (sprite_w, sprite_h))
+
+            sprite_x = center_x - sprite_w // 2
+            sprite_y = podium_y - 210
+            surface.blit(sprite, (sprite_x, sprite_y))
+
+        label = self.big_font.render(player_label, True, player_color)
+        surface.blit(label, (center_x - label.get_width() // 2, self.SCREEN_H - 290))
+
+        name = self.mid_font.render(char_name.upper(), True, (245, 245, 245))
+        surface.blit(name, (center_x - name.get_width() // 2, self.SCREEN_H - 255))
+
+        state_text = "LOCKED" if locked else "SELECTING"
+        state_color = (255, 220, 120) if locked else (210, 210, 210)
+        state_surf = self.font.render(state_text, True, state_color)
+        surface.blit(state_surf, (center_x - state_surf.get_width() // 2, self.SCREEN_H - 225))
+
+    def _draw_character_cards(self, surface: pygame.Surface) -> None:
+        card_w = 120
+        card_h = 140
+        gap = 34
+        total_w = len(self.CHAR_OPTIONS) * card_w + (len(self.CHAR_OPTIONS) - 1) * gap
+        start_x = self.SCREEN_W // 2 - total_w // 2
+        card_y = 120
+
+        for i, char_name in enumerate(self.CHAR_OPTIONS):
+            x = start_x + i * (card_w + gap)
+            rect = pygame.Rect(x, card_y, card_w, card_h)
+
+            pygame.draw.rect(surface, (46, 46, 62), rect, border_radius=12)
+
+            if i == self.p1_choice_index:
+                pygame.draw.rect(surface, (120, 200, 255), rect, 3, border_radius=12)
+
+            if i == self.p2_choice_index:
+                inner = rect.inflate(-8, -8)
+                pygame.draw.rect(surface, (255, 180, 120), inner, 3, border_radius=12)
+
+            frames = self._get_idle_frames(char_name)
+            if frames:
+                frame_time = 0.18
+                frame_index = int(self.char_select_anim_time / frame_time) % len(frames)
+                frame = frames[frame_index]
+
+                sprite_h = 72
+                sprite_w = int(frame.get_width() * (sprite_h / frame.get_height()))
+                sprite = pygame.transform.smoothscale(frame, (sprite_w, sprite_h))
+
+                sprite_x = x + card_w // 2 - sprite_w // 2
+                sprite_y = card_y + 18
+                surface.blit(sprite, (sprite_x, sprite_y))
+
+            name = self.font.render(char_name.upper(), True, (240, 240, 240))
+            surface.blit(name, (x + card_w // 2 - name.get_width() // 2, card_y + 100))
+
+            if i == self.p1_choice_index:
+                p1_mark = self.font.render("P1", True, (120, 200, 255))
+                surface.blit(p1_mark, (x + 10, card_y + 8))
+
+            if i == self.p2_choice_index:
+                p2_mark = self.font.render("P2", True, (255, 180, 120))
+                surface.blit(p2_mark, (x + card_w - p2_mark.get_width() - 10, card_y + 8))
 
     def start_local_vs_match(self) -> None:
         p1_char = self.CHAR_OPTIONS[self.p1_choice_index]
@@ -190,58 +312,54 @@ class GameApp:
         self.p2_choice_index = 1
         self.p1_locked = False
         self.p2_locked = False
+        self.char_select_anim_time = 0.0
 
     def draw_character_select(self) -> None:
-        self.screen.fill((20, 20, 30))
+        self.screen.fill((18, 18, 28))
+        self.char_select_anim_time += 1 / self.FPS
 
         title = self.big_font.render("CHARACTER SELECT", True, (240, 240, 240))
-        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 60))
+        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 28))
 
-        p1_title = self.font.render("P1  A/D: 선택   J: 확정", True, (120, 200, 255))
-        p2_title = self.font.render("P2  ←/→: 선택   K 또는 우클릭: 확정", True, (255, 180, 120))
+        guide1 = self.font.render("P1: A / D 이동   J 확정", True, (120, 200, 255))
+        guide2 = self.font.render("P2: ← / → 이동   K 확정", True, (255, 180, 120))
+        self.screen.blit(guide1, (40, 72))
+        self.screen.blit(guide2, (40, 95))
 
-        self.screen.blit(p1_title, (120, 140))
-        self.screen.blit(p2_title, (self.SCREEN_W - 420, 140))
+        self._draw_character_cards(self.screen)
 
-        box_y = 250
-        spacing = 220
+        # 핵심: 미리보기는 hover가 아니라 현재 선택 인덱스
+        preview_p1_idx = self.p1_choice_index
+        preview_p2_idx = self.p2_choice_index
 
-        for i, char_name in enumerate(self.CHAR_OPTIONS):
-            x = self.SCREEN_W // 2 - spacing + i * spacing
+        self._draw_large_podium_preview(
+            self.screen,
+            center_x=self.SCREEN_W // 4,
+            char_name=self.CHAR_OPTIONS[preview_p1_idx],
+            player_label="P1",
+            player_color=(120, 200, 255),
+            locked=self.p1_locked,
+        )
 
-            base_rect = pygame.Rect(x - 70, box_y - 40, 140, 140)
-
-            p1_color = (60, 120, 180) if i == self.p1_choice_index else (45, 45, 60)
-            pygame.draw.rect(self.screen, p1_color, base_rect, border_radius=10)
-            pygame.draw.rect(self.screen, (120, 200, 255), base_rect, 3, border_radius=10)
-
-            p2_rect = pygame.Rect(x - 66, box_y - 36, 132, 132)
-            if i == self.p2_choice_index:
-                pygame.draw.rect(self.screen, (255, 180, 120), p2_rect, 3, border_radius=10)
-
-            label = self.big_font.render(char_name.upper(), True, (240, 240, 240))
-            self.screen.blit(label, (x - label.get_width() // 2, box_y + 10))
-
-            if i == self.p1_choice_index:
-                p1_mark = self.font.render("P1", True, (120, 200, 255))
-                self.screen.blit(p1_mark, (x - p1_mark.get_width() // 2, box_y - 28))
-
-            if i == self.p2_choice_index:
-                p2_mark = self.font.render("P2", True, (255, 180, 120))
-                self.screen.blit(p2_mark, (x - p2_mark.get_width() // 2, box_y + 68))
+        self._draw_large_podium_preview(
+            self.screen,
+            center_x=self.SCREEN_W * 3 // 4,
+            char_name=self.CHAR_OPTIONS[preview_p2_idx],
+            player_label="P2",
+            player_color=(255, 180, 120),
+            locked=self.p2_locked,
+        )
 
         if self.p1_locked:
             locked1 = self.font.render("P1 LOCKED", True, (120, 200, 255))
-            self.screen.blit(locked1, (120, 190))
+            self.screen.blit(locked1, (self.SCREEN_W // 4 - locked1.get_width() // 2, self.SCREEN_H - 195))
 
         if self.p2_locked:
             locked2 = self.font.render("P2 LOCKED", True, (255, 180, 120))
-            self.screen.blit(locked2, (self.SCREEN_W - 220, 190))
+            self.screen.blit(locked2, (self.SCREEN_W * 3 // 4 - locked2.get_width() // 2, self.SCREEN_H - 195))
 
-        guide = self.font.render("ESC: 종료", True, (180, 180, 180))
-        back = self.font.render("R: 모드 선택으로", True, (180, 180, 180))
-        self.screen.blit(guide, (20, self.SCREEN_H - 30))
-        self.screen.blit(back, (160, self.SCREEN_H - 30))
+        hint = self.font.render("SELECT YOUR CHARACTER", True, (200, 200, 200))
+        self.screen.blit(hint, (self.SCREEN_W // 2 - hint.get_width() // 2, 280))
 
         pygame.display.flip()
 
