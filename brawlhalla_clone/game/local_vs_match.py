@@ -81,6 +81,9 @@ class LocalVsMatch:
         self.winner: PlayerFighter | None = None
         self.is_match_over = False
 
+        self.ko_left_x = -220
+        self.ko_right_x = self.stage.world_w + 220
+        self.ko_top_y = -220
         self.ko_bottom_y = self.stage.world_h + 220
 
         update_grounded(self.player1, self.stage.platforms)
@@ -225,9 +228,21 @@ class LocalVsMatch:
         other.invuln_timer = max(other.invuln_timer, 3.0)
 
     def check_ko(self) -> None:
+        if self.player1.pos.x < self.ko_left_x:
+            self.handle_ko(self.player1)
+        if self.player1.pos.x > self.ko_right_x:
+            self.handle_ko(self.player1)
+        if self.player1.pos.y < self.ko_top_y:
+            self.handle_ko(self.player1)
         if self.player1.pos.y > self.ko_bottom_y:
             self.handle_ko(self.player1)
 
+        if self.player2.pos.x < self.ko_left_x:
+            self.handle_ko(self.player2)
+        if self.player2.pos.x > self.ko_right_x:
+            self.handle_ko(self.player2)
+        if self.player2.pos.y < self.ko_top_y:
+            self.handle_ko(self.player2)
         if self.player2.pos.y > self.ko_bottom_y:
             self.handle_ko(self.player2)
 
