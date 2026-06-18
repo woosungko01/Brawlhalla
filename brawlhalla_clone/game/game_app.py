@@ -49,18 +49,24 @@ class GameApp:
         self.p2_locked = False
 
         self.char_select_anim_time = 0.0
+        self.menu_anim_time = 0.0
 
         self.char_select_frames: dict[str, list[pygame.Surface]] = {}
+        self.char_walk_frames: dict[str, list[pygame.Surface]] = {}
         self.podium_image: pygame.Surface | None = None
-
         self.countdown_overlay: pygame.Surface | None = None
 
+        self.menu_background: pygame.Surface | None = None
+        self.shared_renderer = FighterRenderer()
+
         self._preload_character_select_assets()
+        self._load_menu_background()
         self._rebuild_countdown_overlay()
 
     def _preload_character_select_assets(self) -> None:
         self._load_podium_image()
         self._load_idle_frames_only()
+        self._load_walk_frames_only()
 
     def _load_podium_image(self) -> None:
         path = os.path.join("assets", "ui", "character_podium.png")
@@ -74,17 +80,105 @@ class GameApp:
             self.podium_image = None
 
     def _load_idle_frames_only(self) -> None:
-        renderer = FighterRenderer()
+        renderer = self.shared_renderer
         for char_name in self.CHAR_OPTIONS:
             sprite_set = renderer.sprite_sets.get(char_name, {})
             self.char_select_frames[char_name] = sprite_set.get("idle", [])
 
+    def _load_walk_frames_only(self) -> None:
+        renderer = self.shared_renderer
+        for char_name in self.CHAR_OPTIONS:
+            sprite_set = renderer.sprite_sets.get(char_name, {})
+            walk_frames = sprite_set.get("run", [])
+            if not walk_frames:
+                walk_frames = sprite_set.get("walk", [])
+            if not walk_frames:
+                walk_frames = sprite_set.get("idle", [])
+            self.char_walk_frames[char_name] = walk_frames
+
+    def _load_menu_background(self) -> None:
+        candidates = [
+            os.path.join("assets", "backgrounds", "temple_stage.png"),
+            os.path.join("assets", "backgrounds", "temple_bg.png"),
+            os.path.join("assets", "backgrounds", "temple_stage_bg.png"),
+        ]
+
+        for path in candidates:
+            if not os.path.exists(path):
+                continue
+            try:
+                self.menu_background = pygame.image.load(path).convert()
+                return
+            except pygame.error:
+                continue
+
+        self.menu_background = None
+
     def _get_idle_frames(self, character_id: str) -> list[pygame.Surface]:
         return self.char_select_frames.get(character_id, [])
+
+    def _get_walk_frames(self, character_id: str) -> list[pygame.Surface]:
+        return self.char_walk_frames.get(character_id, [])
 
     def _rebuild_countdown_overlay(self) -> None:
         self.countdown_overlay = pygame.Surface((self.SCREEN_W, self.SCREEN_H), pygame.SRCALPHA)
         self.countdown_overlay.fill((0, 0, 0, 80))
+
+    def _draw_menu_background(self) -> None:
+        if self.menu_background is not None:
+            bg = pygame.transform.scale(self.menu_background, (self.SCREEN_W, self.SCREEN_H))
+            self.screen.blit(bg, (0, 0))
+        else:
+            self.screen.fill((18, 18, 28))
+
+        overlay = pygame.Surface((self.SCREEN_W, self.SCREEN_H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 95))
+        self.screen.blit(overlay, (0, 0))
+
+    def _draw_panel(
+        self,
+        rect: pygame.Rect,
+        *,
+        fill: tuple[int, int, int, int] = (12, 18, 28, 210),
+        border: tuple[int, int, int] = (170, 180, 205),
+        border_width: int = 2,
+        radius: int = 14,
+    ) -> None:
+        panel = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(panel, fill, panel.get_rect(), border_radius=radius)
+        pygame.draw.rect(panel, border, panel.get_rect(), border_width, border_radius=radius)
+        self.screen.blit(panel, rect.topleft)
+
+    def _draw_menu_walkers(self) -> None:
+        walkers = [
+            ("brawler", 0.0, self.SCREEN_H - 88, 95.0),
+            ("swordsman", 0.45, self.SCREEN_H - 92, 120.0),
+            ("gunner", 0.9, self.SCREEN_H - 86, 105.0),
+        ]
+
+        for i, (char_name, time_offset, y, speed) in enumerate(walkers):
+            frames = self._get_walk_frames(char_name)
+            if not frames:
+                continue
+
+            frame_time = 0.12
+            anim_t = self.menu_anim_time + time_offset
+            frame_index = int(anim_t / frame_time) % len(frames)
+            frame = frames[frame_index]
+
+            sprite_h = 84
+            sprite_w = int(frame.get_width() * (sprite_h / frame.get_height()))
+            sprite = pygame.transform.smoothscale(frame, (sprite_w, sprite_h))
+
+            travel_w = self.SCREEN_W + 300
+            start_offset = i * 180
+            x = int((anim_t * speed + start_offset) % travel_w) - 150
+
+            shadow = pygame.Surface((sprite_w + 18, 18), pygame.SRCALPHA)
+            pygame.draw.ellipse(shadow, (0, 0, 0, 90), shadow.get_rect())
+            self.screen.blit(shadow, (x - 9, y + sprite_h - 2))
+
+            self.screen.blit(sprite, (x, y))
 
     def read_input_p1(self, inp: InputState, events: list[pygame.event.Event]) -> None:
         inp.reset_frame_events()
@@ -188,21 +282,35 @@ class GameApp:
         self.scene = "training"
 
     def draw_mode_select(self) -> None:
-        self.screen.fill((18, 18, 28))
+        self.menu_anim_time += 1 / self.FPS
+        self._draw_menu_background()
+
+        title_panel = pygame.Rect(self.SCREEN_W // 2 - 240, 72, 480, 88)
+        subtitle_panel = pygame.Rect(self.SCREEN_W // 2 - 140, 170, 280, 42)
+        menu_panel = pygame.Rect(self.SCREEN_W // 2 - 230, 238, 460, 240)
+        guide_panel = pygame.Rect(18, self.SCREEN_H - 52, 160, 34)
+
+        self._draw_panel(title_panel, fill=(10, 16, 26, 220), border=(255, 210, 120), border_width=3, radius=18)
+        self._draw_panel(subtitle_panel, fill=(10, 16, 26, 210), border=(180, 190, 210), radius=12)
+        self._draw_panel(menu_panel, fill=(12, 18, 28, 215), border=(150, 160, 190), radius=16)
+        self._draw_panel(guide_panel, fill=(10, 14, 24, 215), border=(130, 140, 170), radius=10)
 
         title = self.big_font.render("BROHALLA", True, (245, 245, 245))
-        subtitle = self.mid_font.render("SELECT MODE", True, (200, 200, 210))
+        subtitle = self.mid_font.render("SELECT MODE", True, (215, 215, 225))
         multi = self.big_font.render("1. DEBUG VS", True, (255, 180, 120))
         training = self.big_font.render("2. TRAINING", True, (120, 200, 255))
         versus = self.big_font.render("3. BRAWL", True, (150, 255, 170))
-        guide = self.font.render("ESC: 종료", True, (180, 180, 180))
+        guide = self.font.render("ESC: EXIT", True, (225, 225, 225))
 
-        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 105))
-        self.screen.blit(subtitle, (self.SCREEN_W // 2 - subtitle.get_width() // 2, 150))
-        self.screen.blit(multi, (self.SCREEN_W // 2 - multi.get_width() // 2, 255))
-        self.screen.blit(training, (self.SCREEN_W // 2 - training.get_width() // 2, 325))
-        self.screen.blit(versus, (self.SCREEN_W // 2 - versus.get_width() // 2, 395))
-        self.screen.blit(guide, (20, self.SCREEN_H - 30))
+        self.screen.blit(title, (title_panel.centerx - title.get_width() // 2, title_panel.y + 24))
+        self.screen.blit(subtitle, (subtitle_panel.centerx - subtitle.get_width() // 2, subtitle_panel.y + 11))
+
+        self.screen.blit(multi, (menu_panel.centerx - multi.get_width() // 2, menu_panel.y + 34))
+        self.screen.blit(training, (menu_panel.centerx - training.get_width() // 2, menu_panel.y + 104))
+        self.screen.blit(versus, (menu_panel.centerx - versus.get_width() // 2, menu_panel.y + 174))
+        self.screen.blit(guide, (guide_panel.x + 18, guide_panel.y + 9))
+
+        self._draw_menu_walkers()
 
         pygame.display.flip()
 
@@ -274,6 +382,17 @@ class GameApp:
             sprite_y = podium_y - 210
             surface.blit(sprite, (sprite_x, sprite_y))
 
+        label_panel = pygame.Rect(center_x - 54, self.SCREEN_H - 295, 108, 34)
+        name_panel = pygame.Rect(center_x - 82, self.SCREEN_H - 258, 164, 32)
+
+        panel_surf = pygame.Surface((label_panel.width, label_panel.height), pygame.SRCALPHA)
+        pygame.draw.rect(panel_surf, (*player_color, 60), panel_surf.get_rect(), border_radius=10)
+        surface.blit(panel_surf, label_panel.topleft)
+
+        name_surf_bg = pygame.Surface((name_panel.width, name_panel.height), pygame.SRCALPHA)
+        pygame.draw.rect(name_surf_bg, (10, 16, 24, 180), name_surf_bg.get_rect(), border_radius=10)
+        surface.blit(name_surf_bg, name_panel.topleft)
+
         label = self.big_font.render(player_label, True, player_color)
         surface.blit(label, (center_x - label.get_width() // 2, self.SCREEN_H - 290))
 
@@ -291,7 +410,10 @@ class GameApp:
         gap = 34
         total_w = len(self.CHAR_OPTIONS) * card_w + (len(self.CHAR_OPTIONS) - 1) * gap
         start_x = self.SCREEN_W // 2 - total_w // 2
-        card_y = 120
+        card_y = 140
+
+        panel_rect = pygame.Rect(start_x - 20, card_y - 18, total_w + 40, card_h + 36)
+        self._draw_panel(panel_rect, fill=(12, 18, 28, 205), border=(150, 160, 190), radius=16)
 
         for i, char_name in enumerate(self.CHAR_OPTIONS):
             x = start_x + i * (card_w + gap)
@@ -383,7 +505,7 @@ class GameApp:
             self.screen.blit(surf, (x, y))
             return
 
-        color = (255, 240, 120) if text != "GO!" else (120, 255, 140)
+        color = (255, 240, 120)
         surf = self.big_font.render(text, True, color)
 
         self.screen.blit(
@@ -452,20 +574,31 @@ class GameApp:
         self.match_countdown_duration = 4.0
 
     def draw_character_select(self) -> None:
-        self.screen.fill((18, 18, 28))
+        self._draw_menu_background()
         self.char_select_anim_time += 1 / self.FPS
 
+        title_panel = pygame.Rect(self.SCREEN_W // 2 - 240, 20, 480, 54)
+        guide_panel = pygame.Rect(28, 78, 280, 68)
+        mode_panel = pygame.Rect(28, 152, 180, 34)
+        hint_panel = pygame.Rect(self.SCREEN_W // 2 - 145, 300, 290, 36)
+
+        self._draw_panel(title_panel, fill=(12, 18, 28, 215), border=(220, 220, 230), radius=14)
+        self._draw_panel(guide_panel, fill=(12, 18, 28, 210), border=(140, 160, 190), radius=12)
+        self._draw_panel(mode_panel, fill=(12, 18, 28, 210), border=(150, 160, 185), radius=10)
+        self._draw_panel(hint_panel, fill=(12, 18, 28, 205), border=(150, 160, 185), radius=10)
+
         title = self.big_font.render("CHARACTER SELECT", True, (240, 240, 240))
-        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 28))
+        self.screen.blit(title, (title_panel.centerx - title.get_width() // 2, title_panel.y + 14))
 
         guide1 = self.font.render("P1: A / D Move   J Confirm", True, (120, 200, 255))
         guide2 = self.font.render("P2: ← / → Move   K Confirm", True, (255, 180, 120))
-        self.screen.blit(guide1, (40, 72))
-        self.screen.blit(guide2, (40, 95))
+        self.screen.blit(guide1, (guide_panel.x + 14, guide_panel.y + 17))
+        self.screen.blit(guide2, (guide_panel.x + 14, guide_panel.y + 40))
 
         mode_text = "MODE: BRAWL" if self.vs_mode_type == "real" else "MODE: DEBUG VS"
-        mode_surf = self.font.render(mode_text, True, (180, 255, 180) if self.vs_mode_type == "real" else (255, 200, 140))
-        self.screen.blit(mode_surf, (40, 118))
+        mode_color = (180, 255, 180) if self.vs_mode_type == "real" else (255, 200, 140)
+        mode_surf = self.font.render(mode_text, True, mode_color)
+        self.screen.blit(mode_surf, (mode_panel.x + 12, mode_panel.y + 9))
 
         self._draw_character_cards(self.screen)
 
@@ -491,15 +624,19 @@ class GameApp:
         )
 
         if self.p1_locked:
+            lock_rect_1 = pygame.Rect(self.SCREEN_W // 4 - 72, self.SCREEN_H - 202, 144, 28)
+            self._draw_panel(lock_rect_1, fill=(14, 20, 28, 220), border=(120, 200, 255), radius=10)
             locked1 = self.font.render("P1 LOCKED", True, (120, 200, 255))
-            self.screen.blit(locked1, (self.SCREEN_W // 4 - locked1.get_width() // 2, self.SCREEN_H - 195))
+            self.screen.blit(locked1, (lock_rect_1.centerx - locked1.get_width() // 2, lock_rect_1.y + 7))
 
         if self.p2_locked:
+            lock_rect_2 = pygame.Rect(self.SCREEN_W * 3 // 4 - 72, self.SCREEN_H - 202, 144, 28)
+            self._draw_panel(lock_rect_2, fill=(14, 20, 28, 220), border=(255, 180, 120), radius=10)
             locked2 = self.font.render("P2 LOCKED", True, (255, 180, 120))
-            self.screen.blit(locked2, (self.SCREEN_W * 3 // 4 - locked2.get_width() // 2, self.SCREEN_H - 195))
+            self.screen.blit(locked2, (lock_rect_2.centerx - locked2.get_width() // 2, lock_rect_2.y + 7))
 
-        hint = self.font.render("SELECT YOUR CHARACTER", True, (200, 200, 200))
-        self.screen.blit(hint, (self.SCREEN_W // 2 - hint.get_width() // 2, 280))
+        hint = self.font.render("SELECT YOUR CHARACTER", True, (220, 220, 220))
+        self.screen.blit(hint, (hint_panel.centerx - hint.get_width() // 2, hint_panel.y + 10))
 
         pygame.display.flip()
 
@@ -592,18 +729,21 @@ class GameApp:
                 self.reset_to_character_select()
 
     def draw_result(self) -> None:
-        self.screen.fill((15, 15, 25))
+        self._draw_menu_background()
 
         if self.match is not None and self.match.winner is not None:
             winner_text = f"P{self.match.winner.player_index} WIN!"
         else:
             winner_text = "MATCH END"
 
-        title = self.big_font.render(winner_text, True, (255, 240, 120))
-        info = self.font.render("R: Return To Menu", True, (220, 220, 220))
+        result_panel = pygame.Rect(self.SCREEN_W // 2 - 260, self.SCREEN_H // 2 - 90, 520, 170)
+        self._draw_panel(result_panel, fill=(12, 18, 28, 220), border=(255, 220, 120), border_width=3, radius=18)
 
-        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, self.SCREEN_H // 2 - 40))
-        self.screen.blit(info, (self.SCREEN_W // 2 - info.get_width() // 2, self.SCREEN_H // 2 + 10))
+        title = self.big_font.render(winner_text, True, (255, 240, 120))
+        info = self.font.render("R: Return To Menu", True, (230, 230, 230))
+
+        self.screen.blit(title, (result_panel.centerx - title.get_width() // 2, result_panel.y + 50))
+        self.screen.blit(info, (result_panel.centerx - info.get_width() // 2, result_panel.y + 105))
 
         pygame.display.flip()
 
