@@ -66,7 +66,7 @@ class GameApp:
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_SPACE, pygame.K_w):
                     inp.jump_pressed = True
-                if event.key in (pygame.K_LSHIFT):
+                if event.key == pygame.K_LSHIFT:
                     inp.dodge_pressed = True
                 if event.key == pygame.K_j:
                     inp.attack_pressed = True
