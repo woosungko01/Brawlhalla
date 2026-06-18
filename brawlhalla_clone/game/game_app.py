@@ -64,9 +64,9 @@ class GameApp:
 
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
+                if event.key in (pygame.K_SPACE, pygame.K_w):
                     inp.jump_pressed = True
-                if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
+                if event.key in (pygame.K_LSHIFT):
                     inp.dodge_pressed = True
                 if event.key == pygame.K_j:
                     inp.attack_pressed = True
@@ -74,7 +74,7 @@ class GameApp:
                     inp.ultimate_pressed = True
 
             elif event.type == pygame.KEYUP:
-                if event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
+                if event.key in (pygame.K_SPACE, pygame.K_w):
                     inp.jump_released = True
 
     def read_input_p2(self, inp: InputState, events: list[pygame.event.Event]) -> None:
