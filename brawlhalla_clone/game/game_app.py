@@ -52,13 +52,13 @@ class GameApp:
         keys = pygame.key.get_pressed()
 
         # 트레이닝에서도 방향키 사용 가능하도록 확장
-        inp.left = keys[pygame.K_a] or keys[pygame.K_LEFT]
-        inp.right = keys[pygame.K_d] or keys[pygame.K_RIGHT]
-        inp.down = keys[pygame.K_s] or keys[pygame.K_DOWN]
-        inp.up = keys[pygame.K_w] or keys[pygame.K_UP]
+        inp.left = keys[pygame.K_a]
+        inp.right = keys[pygame.K_d]
+        inp.down = keys[pygame.K_s]
+        inp.up = keys[pygame.K_w]
 
-        inp.jump = keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]
-        inp.dodge = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+        inp.jump = keys[pygame.K_SPACE] or keys[pygame.K_w]
+        inp.dodge = keys[pygame.K_LSHIFT]
         inp.attack = keys[pygame.K_j]
         inp.ultimate = keys[pygame.K_k]
 
