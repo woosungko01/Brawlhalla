@@ -54,7 +54,7 @@ class BrawlerCharacter(BaseCharacter):
                 base_vx=250.0,
                 base_vy=-460.0,
                 hitstun=0.24,
-                percent_scale=0.020,
+                percent_scale=0.030,
             ),
         )
 
@@ -76,8 +76,8 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
-                vx=150.0,
-                vy=-95.0,
+                vx=180.0,
+                vy=-105.0,
                 hitstun=0.38,
                 stun=0.58,
                 delayed_launch=True,
@@ -105,7 +105,7 @@ class BrawlerCharacter(BaseCharacter):
                 base_vx=150.0,
                 base_vy=-640.0,
                 hitstun=0.24,
-                percent_scale=0.022,
+                percent_scale=0.032,
             ),
         )
 
@@ -127,8 +127,8 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=100.0,
-                vy=-120.0,
+                vx=130.0,
+                vy=-145.0,
                 hitstun=0.36,
                 stun=0.54,
                 delayed_launch=True,
@@ -156,7 +156,7 @@ class BrawlerCharacter(BaseCharacter):
                 base_vx=280.0,
                 base_vy=-220.0,
                 hitstun=0.22,
-                percent_scale=0.022,
+                percent_scale=0.032,
             ),
             locks_horizontal_movement=False,
             dash_velocity_x=260.0,
@@ -181,8 +181,8 @@ class BrawlerCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=110.0,
-                vy=130.0,
+                vx=130.0,
+                vy=145.0,
                 hitstun=0.34,
                 stun=0.52,
                 delayed_launch=True,

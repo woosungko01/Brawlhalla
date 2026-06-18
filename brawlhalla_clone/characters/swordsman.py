@@ -55,8 +55,8 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=13.0,
-                vx=95.0,
-                vy=-95.0,
+                vx=110.0,
+                vy=-110.0,
                 hitstun=0.36,
                 stun=0.56,
                 delayed_launch=True,
@@ -82,8 +82,8 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=15.0,
-                vx=125.0,
-                vy=-100.0,
+                vx=135.0,
+                vy=-115.0,
                 hitstun=0.38,
                 stun=0.60,
                 delayed_launch=True,
@@ -111,7 +111,7 @@ class SwordsmanCharacter(BaseCharacter):
                 base_vx=150.0,
                 base_vy=-760.0,
                 hitstun=0.26,
-                percent_scale=0.022,
+                percent_scale=0.032,
             ),
         )
 
@@ -133,8 +133,8 @@ class SwordsmanCharacter(BaseCharacter):
             ),
             knockback_model=FixedKnockback(
                 damage=14.0,
-                vx=100.0,
-                vy=-135.0,
+                vx=120.0,
+                vy=-145.0,
                 hitstun=0.37,
                 stun=0.58,
                 delayed_launch=True,
@@ -159,7 +159,7 @@ class SwordsmanCharacter(BaseCharacter):
                 base_vx=220.0,
                 base_vy=520.0,
                 hitstun=0.24,
-                percent_scale=0.023,
+                percent_scale=0.033,
             ),
         )
 
@@ -180,7 +180,7 @@ class SwordsmanCharacter(BaseCharacter):
                 base_vx=170.0,
                 base_vy=640.0,
                 hitstun=0.26,
-                percent_scale=0.023,
+                percent_scale=0.033,
             ),
         )
 

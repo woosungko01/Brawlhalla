@@ -56,14 +56,14 @@ class GunnerCharacter(BaseCharacter):
                 base_vx=155.0,
                 base_vy=55.0,
                 hitstun=0.12,
-                percent_scale=0.018,
+                percent_scale=0.031,
             ),
         )
 
     def _side(self) -> AttackData:
         return AttackData(
             name=AttackSlot.SIDE.value,
-            total_time=0.63,
+            total_time=0.70,
             active_windows=[
                 (0.35, 0.39),
                 (0.45, 0.49),
@@ -77,9 +77,9 @@ class GunnerCharacter(BaseCharacter):
                 f.facing,
             ),
             knockback_model=FixedKnockback(
-                damage=14.0,
-                vx=95.0,
-                vy=-85.0,
+                damage=15.0,
+                vx=110.0,
+                vy=-100.0,
                 hitstun=0.36,
                 stun=0.56,
                 delayed_launch=True,
@@ -103,7 +103,7 @@ class GunnerCharacter(BaseCharacter):
                 base_vx=0.0,
                 base_vy=-640.0,
                 hitstun=0.16,
-                percent_scale=0.020,
+                percent_scale=0.030,
             ),
         )
 
@@ -125,7 +125,7 @@ class GunnerCharacter(BaseCharacter):
             knockback_model=FixedKnockback(
                 damage=13.0,
                 vx=0.0,
-                vy=-120.0,
+                vy=-150.0,
                 hitstun=0.34,
                 stun=0.54,
                 delayed_launch=True,
@@ -149,7 +149,7 @@ class GunnerCharacter(BaseCharacter):
                 base_vx=0.0,
                 base_vy=670.0,
                 hitstun=0.16,
-                percent_scale=0.020,
+                percent_scale=0.030,
             ),
         )
 
@@ -169,7 +169,7 @@ class GunnerCharacter(BaseCharacter):
                 base_vx=0.0,
                 base_vy=760.0,
                 hitstun=0.18,
-                percent_scale=0.021,
+                percent_scale=0.031,
             ),
         )
 
