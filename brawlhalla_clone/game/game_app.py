@@ -38,6 +38,10 @@ class GameApp:
         self.scene = "mode_select"
         self.match = None
 
+        self.match_countdown_active = False
+        self.match_countdown_timer = 0.0
+        self.match_countdown_duration = 4.0
+
         self.p1_choice_index = 0
         self.p2_choice_index = 1
         self.p1_locked = False
@@ -299,12 +303,71 @@ class GameApp:
                 p2_mark = self.font.render("P2", True, (255, 180, 120))
                 surface.blit(p2_mark, (x + card_w - p2_mark.get_width() - 10, card_y + 8))
 
+    def update_match_countdown(self, dt: float) -> None:
+        if not self.match_countdown_active:
+            return
+
+        self.match_countdown_timer += dt
+
+        if self.match_countdown_timer >= self.match_countdown_duration:
+            self.match_countdown_active = False
+
+    def get_countdown_text(self) -> str | None:
+        if not self.match_countdown_active:
+            return None
+
+        t = self.match_countdown_timer
+
+        if t < 1.0:
+            return "3"
+        elif t < 2.0:
+            return "2"
+        elif t < 3.0:
+            return "1"
+        elif t < 4.0:
+            return "GO!"
+        return None
+
+    def draw_match_countdown_overlay(self) -> None:
+        text = self.get_countdown_text()
+        if text is None:
+            return
+
+        # 반투명 어둡게
+        overlay = pygame.Surface((self.SCREEN_W, self.SCREEN_H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 90))
+        self.screen.blit(overlay, (0, 0))
+
+        color = (255, 240, 120) if text != "GO!" else (120, 255, 140)
+        surf = self.big_font.render(text, True, color)
+
+        self.screen.blit(
+            surf,
+            (
+                self.SCREEN_W // 2 - surf.get_width() // 2,
+                self.SCREEN_H // 2 - surf.get_height() // 2,
+            ),
+        )
+
     def start_local_vs_match(self) -> None:
         p1_char = self.CHAR_OPTIONS[self.p1_choice_index]
         p2_char = self.CHAR_OPTIONS[self.p2_choice_index]
 
         self.match = LocalVsMatch(self.SCREEN_W, self.SCREEN_H, p1_char, p2_char)
         self.scene = "match"
+        self.match_countdown_active = True
+        self.match_countdown_timer = 0.0
+
+        # 카메라를 즉시 맵 중앙으로 세팅
+        center_x = self.match.stage.world_w / 2
+        center_y = self.match.stage.world_h / 2
+
+        visible_w = self.SCREEN_W / self.match.camera.zoom
+        visible_h = self.SCREEN_H / self.match.camera.zoom
+
+        self.match.camera.x = center_x - visible_w / 2
+        self.match.camera.y = (center_y - 40) - visible_h / 2
+        self.match.camera.clamp_to_world()
 
     def reset_to_character_select(self) -> None:
         self.match = None
@@ -381,6 +444,16 @@ class GameApp:
 
     def update_match(self, dt: float, events: list[pygame.event.Event]) -> None:
         if self.match is None:
+            return
+
+        if self.match_countdown_active:
+            self.update_match_countdown(dt)
+
+            # countdown 동안 카메라를 맵 중앙으로 유지
+            center_x = self.match.stage.world_w / 2
+            center_y = self.match.stage.world_h / 2
+            self.match.camera.update(center_x, center_y)
+
             return
 
         self.read_input_p1(self.match.player1.input, events)
@@ -471,6 +544,11 @@ class GameApp:
                 self.update_match(dt, events)
                 if self.match is not None:
                     self.match.draw(self.screen, dt, self.font, draw_debug_hud)
+
+                    if self.match_countdown_active:
+                        self.draw_match_countdown_overlay()
+
+                    pygame.display.flip()
 
             elif self.scene == "training":
                 self.handle_training_events(events)
