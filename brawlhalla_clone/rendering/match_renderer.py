@@ -82,7 +82,7 @@ class MatchRenderer:
 
             match.camera.x = original_cam_x
             match.camera.y = original_cam_y
-            pygame.display.flip()
+            #pygame.display.flip()
             return
 
         self._draw_trail_effects(surface, match.player, match.camera)
@@ -109,7 +109,7 @@ class MatchRenderer:
 
         match.camera.x = original_cam_x
         match.camera.y = original_cam_y
-        pygame.display.flip()
+        #pygame.display.flip()
 
     def _draw_trail_effects(self, surface: pygame.Surface, fighter, camera) -> None:
         if self.trail_image is None:
