@@ -131,16 +131,12 @@ class TrainingMatch:
                 alive.append(fx)
         fighter.trail_effects = alive
 
-        if fighter.damage.percent < 120.0:
-            fighter.trail_spawn_timer = 0.0
-            return
-
         if fighter.hitstun_timer <= 0.0:
             fighter.trail_spawn_timer = 0.0
             return
 
         speed_sq = fighter.vel.x * fighter.vel.x + fighter.vel.y * fighter.vel.y
-        if speed_sq < 220.0 * 220.0:
+        if speed_sq < 180.0 * 180.0:
             fighter.trail_spawn_timer = 0.0
             return
 
@@ -148,22 +144,16 @@ class TrainingMatch:
         if fighter.trail_spawn_timer > 0.0:
             return
 
-        scale = 0.70
-        if fighter.damage.percent >= 180:
-            scale = 0.92
-        elif fighter.damage.percent >= 150:
-            scale = 0.82
-
         fighter.trail_effects.append(
             TrailEffect(
-                x=fighter.pos.x - fighter.vel.x * 0.012,
-                y=fighter.pos.y - fighter.vel.y * 0.012,
-                lifetime=0.055,
-                max_lifetime=0.055,
-                scale=scale,
+                x=fighter.pos.x,
+                y=fighter.pos.y,
+                lifetime=0.30,
+                max_lifetime=0.30,
+                scale=0.60,
             )
         )
-        fighter.trail_spawn_timer = 0.018
+        fighter.trail_spawn_timer = 0.035
 
     def _store_followup_if_possible(self, fighter, action: FollowupAction) -> None:
         if not fighter.is_attacking:

@@ -71,10 +71,18 @@ class MatchRenderer:
                 self.PLAYER2_COLOR, self.PLAYER2_BORDER
             )
 
-            self._draw_vs_labels(surface, match, font)
-            self._draw_attack_hitbox(surface, match.player1, match.camera)
-            self._draw_attack_hitbox(surface, match.player2, match.camera)
-            self._draw_vs_ui(surface, match, font)
+            if getattr(match, "show_fighter_labels", True):
+                self._draw_vs_labels(surface, match, font)
+
+            if getattr(match, "show_hitboxes", True):
+                self._draw_attack_hitbox(surface, match.player1, match.camera)
+                self._draw_attack_hitbox(surface, match.player2, match.camera)
+
+            if getattr(match, "minimal_ui", False):
+                self._draw_real_vs_ui(surface, match, font)
+            else:
+                self._draw_vs_ui(surface, match, font)
+
             self._draw_ko_banner(surface, match)
 
             if getattr(match, "show_hud", False):
@@ -82,7 +90,6 @@ class MatchRenderer:
 
             match.camera.x = original_cam_x
             match.camera.y = original_cam_y
-            #pygame.display.flip()
             return
 
         self._draw_trail_effects(surface, match.player, match.camera)
@@ -109,7 +116,6 @@ class MatchRenderer:
 
         match.camera.x = original_cam_x
         match.camera.y = original_cam_y
-        #pygame.display.flip()
 
     def _draw_trail_effects(self, surface: pygame.Surface, fighter, camera) -> None:
         if self.trail_image is None:
@@ -118,7 +124,7 @@ class MatchRenderer:
         for fx in fighter.trail_effects:
             ratio = fx.lifetime / fx.max_lifetime if fx.max_lifetime > 0.0 else 0.0
             alpha = int(150 * ratio)
-            scale = fx.scale * (0.86 + 0.22 * ratio)
+            scale = fx.scale * (0.60 + 0.05 * ratio)
 
             w = max(8, int(self.trail_image.get_width() * scale * camera.zoom))
             h = max(8, int(self.trail_image.get_height() * scale * camera.zoom))
@@ -231,69 +237,79 @@ class MatchRenderer:
                 ),
             )
 
-    def _draw_damage_bars(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
-        p1 = match.player1
-        p2 = match.player2
-
-        margin = 20
-        bar_w = 220
-        bar_h = 18
-        gap = 12
-
-        # 오른쪽 위 기준
-        x = surface.get_width() - bar_w - margin
-        y1 = 20
-        y2 = y1 + bar_h + gap + 18
-
-        # 0~200%를 0~1로 매핑
-        p1_ratio = min(p1.damage.percent / 200.0, 1.0)
-        p2_ratio = min(p2.damage.percent / 200.0, 1.0)
-
-        # 배경 바
-        bg1 = pygame.Rect(x, y1, bar_w, bar_h)
-        bg2 = pygame.Rect(x, y2, bar_w, bar_h)
-        pygame.draw.rect(surface, (60, 60, 60), bg1, border_radius=6)
-        pygame.draw.rect(surface, (60, 60, 60), bg2, border_radius=6)
-
-        # 실제 데미지 바
-        fill1 = pygame.Rect(x, y1, int(bar_w * p1_ratio), bar_h)
-        fill2 = pygame.Rect(x, y2, int(bar_w * p2_ratio), bar_h)
-
-        # player1 = 빨간색, player2 = 파란색
-        pygame.draw.rect(surface, (220, 70, 70), fill1, border_radius=6)
-        pygame.draw.rect(surface, (70, 140, 255), fill2, border_radius=6)
-
-        # 테두리
-        pygame.draw.rect(surface, (220, 220, 220), bg1, 2, border_radius=6)
-        pygame.draw.rect(surface, (220, 220, 220), bg2, 2, border_radius=6)
-
-        # 텍스트
-        p1_text = font.render(f"P1 {p1.damage.percent:.1f}%", True, (255, 230, 230))
-        p2_text = font.render(f"P2 {p2.damage.percent:.1f}%", True, (230, 240, 255))
-
-        surface.blit(p1_text, (x, y1 - 18))
-        surface.blit(p2_text, (x, y2 - 18))
-
-
     def _draw_single_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
         if match.player.ultimate_timer > 0.0:
             ult_surf = font.render("ULT ACTIVE", True, (255, 220, 120))
             surface.blit(ult_surf, (20, 60))
 
+    def _lerp_color(self, a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+        t = max(0.0, min(1.0, t))
+        return (
+            int(a[0] + (b[0] - a[0]) * t),
+            int(a[1] + (b[1] - a[1]) * t),
+            int(a[2] + (b[2] - a[2]) * t),
+        )
+
+    def _draw_damage_meter(
+        self,
+        surface: pygame.Surface,
+        *,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        fighter,
+        label: str,
+        align_right: bool = False,
+    ) -> None:
+        damage = max(0.0, float(fighter.damage.percent))
+        fill_ratio = min(damage / 300.0, 1.0)
+
+        bar_color = self._lerp_color((70, 150, 255), (255, 60, 60), fill_ratio)
+
+        panel_rect = pygame.Rect(x, y, w, h)
+        pygame.draw.rect(surface, (20, 24, 32), panel_rect, border_radius=10)
+        pygame.draw.rect(surface, (90, 100, 120), panel_rect, 2, border_radius=10)
+
+        inner_margin = 6
+        inner_rect = panel_rect.inflate(-inner_margin * 2, -inner_margin * 2)
+        pygame.draw.rect(surface, (35, 40, 52), inner_rect, border_radius=8)
+
+        fill_w = int(inner_rect.width * fill_ratio)
+        if fill_w > 0:
+            fill_rect = pygame.Rect(inner_rect.x, inner_rect.y, fill_w, inner_rect.height)
+            pygame.draw.rect(surface, bar_color, fill_rect, border_radius=8)
+
+        small_font = pygame.font.SysFont("monospace", 14, bold=True)
+        value_font = pygame.font.SysFont("monospace", 18, bold=True)
+
+        label_surf = small_font.render(label, True, (235, 235, 235))
+        value_color = self._lerp_color((160, 210, 255), (255, 90, 90), fill_ratio)
+        value_surf = value_font.render(f"{damage:.1f}%", True, value_color)
+
+        stock_surf = small_font.render(f"STOCKS {fighter.stocks}", True, (220, 220, 220))
+
+        if align_right:
+            surface.blit(label_surf, (panel_rect.right - label_surf.get_width(), panel_rect.y - 44))
+            surface.blit(value_surf, (panel_rect.right - value_surf.get_width(), panel_rect.y - 24))
+            surface.blit(stock_surf, (panel_rect.right - stock_surf.get_width(), panel_rect.bottom + 6))
+        else:
+            surface.blit(label_surf, (panel_rect.x, panel_rect.y - 44))
+            surface.blit(value_surf, (panel_rect.x, panel_rect.y - 24))
+            surface.blit(stock_surf, (panel_rect.x, panel_rect.bottom + 6))
+
     def _draw_vs_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
         p1 = match.player1
         p2 = match.player2
 
-        p1_text = f"P1  {p1.character.character_id}   HP%:{p1.damage.percent:.1f}   STOCKS:{p1.stocks}"
-        p2_text = f"P2  {p2.character.character_id}   HP%:{p2.damage.percent:.1f}   STOCKS:{p2.stocks}"
+        p1_text = f"P1  {p1.character.character_id}"
+        p2_text = f"P2  {p2.character.character_id}"
 
         p1_surf = font.render(p1_text, True, self.PLAYER1_COLOR)
         p2_surf = font.render(p2_text, True, self.PLAYER2_COLOR)
 
         surface.blit(p1_surf, (20, 20))
         surface.blit(p2_surf, (20, 44))
-
-        self._draw_damage_bars(surface, match, font)
 
         if p1.ultimate_timer > 0.0:
             ult1 = font.render("P1 ULT ACTIVE", True, (255, 220, 120))
@@ -302,6 +318,36 @@ class MatchRenderer:
         if p2.ultimate_timer > 0.0:
             ult2 = font.render("P2 ULT ACTIVE", True, (255, 220, 120))
             surface.blit(ult2, (20, 92))
+
+        meter_w = 260
+        meter_h = 24
+        right_margin = 20
+        top_margin = 50
+        meter_gap = 110
+
+        meter_x = surface.get_width() - meter_w - right_margin
+
+        self._draw_damage_meter(
+            surface,
+            x=meter_x,
+            y=top_margin,
+            w=meter_w,
+            h=meter_h,
+            fighter=p1,
+            label=f"P1 {p1.character.character_id.upper()}",
+            align_right=True,
+        )
+
+        self._draw_damage_meter(
+            surface,
+            x=meter_x,
+            y=top_margin + meter_gap,
+            w=meter_w,
+            h=meter_h,
+            fighter=p2,
+            label=f"P2 {p2.character.character_id.upper()}",
+            align_right=True,
+        )
 
         if getattr(match, "is_match_over", False) and getattr(match, "winner", None) is not None:
             win_surf = font.render(
@@ -314,6 +360,60 @@ class MatchRenderer:
                 (
                     surface.get_width() // 2 - win_surf.get_width() // 2,
                     20,
+                ),
+            )
+
+    def _draw_real_vs_ui(self, surface: pygame.Surface, match, font: pygame.font.Font) -> None:
+        p1 = match.player1
+        p2 = match.player2
+
+        meter_w = 220
+        meter_h = 22
+        bottom_y = surface.get_height() - 72
+        side_margin = 28
+
+        self._draw_damage_meter(
+            surface,
+            x=side_margin,
+            y=bottom_y,
+            w=meter_w,
+            h=meter_h,
+            fighter=p1,
+            label="P1",
+            align_right=False,
+        )
+
+        self._draw_damage_meter(
+            surface,
+            x=surface.get_width() - meter_w - side_margin,
+            y=bottom_y,
+            w=meter_w,
+            h=meter_h,
+            fighter=p2,
+            label="P2",
+            align_right=True,
+        )
+
+        if p1.ultimate_timer > 0.0:
+            ult1 = font.render("ULT", True, (255, 220, 120))
+            surface.blit(ult1, (side_margin, bottom_y - 28))
+
+        if p2.ultimate_timer > 0.0:
+            ult2 = font.render("ULT", True, (255, 220, 120))
+            surface.blit(ult2, (surface.get_width() - side_margin - ult2.get_width(), bottom_y - 28))
+
+        if getattr(match, "is_match_over", False) and getattr(match, "winner", None) is not None:
+            win_font = pygame.font.SysFont("monospace", 24, bold=True)
+            win_surf = win_font.render(
+                f"P{match.winner.player_index} WIN!",
+                True,
+                (255, 240, 120),
+            )
+            surface.blit(
+                win_surf,
+                (
+                    surface.get_width() // 2 - win_surf.get_width() // 2,
+                    22,
                 ),
             )
 

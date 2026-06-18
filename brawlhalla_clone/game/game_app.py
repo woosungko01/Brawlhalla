@@ -1,5 +1,3 @@
-# game/game_app.py
-
 import os
 import sys
 import pygame
@@ -7,13 +5,14 @@ import pygame
 from core.input_state import InputState
 from game.training_match import TrainingMatch
 from game.local_vs_match import LocalVsMatch
+from game.real_vs_match import RealVsMatch
 from utils.debug_hud import draw_debug_hud
 from rendering.fighter_renderer import FighterRenderer
 
 
 class GameApp:
     FPS = 60
-    TITLE = "Brawlhalla OOP Prototype"
+    TITLE = "BROHALLA"
 
     CHAR_OPTIONS = ["brawler", "swordsman", "gunner"]
 
@@ -33,10 +32,12 @@ class GameApp:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("monospace", 13)
         self.mid_font = pygame.font.SysFont("monospace", 18)
-        self.big_font = pygame.font.SysFont("monospace", 26)
+        self.big_font = pygame.font.SysFont("monospace", 26, bold=True)
+        self.countdown_font = pygame.font.SysFont("monospace", 54, bold=True)
 
         self.scene = "mode_select"
         self.match = None
+        self.vs_mode_type = "local"
 
         self.match_countdown_active = False
         self.match_countdown_timer = 0.0
@@ -52,7 +53,10 @@ class GameApp:
         self.char_select_frames: dict[str, list[pygame.Surface]] = {}
         self.podium_image: pygame.Surface | None = None
 
+        self.countdown_overlay: pygame.Surface | None = None
+
         self._preload_character_select_assets()
+        self._rebuild_countdown_overlay()
 
     def _preload_character_select_assets(self) -> None:
         self._load_podium_image()
@@ -77,6 +81,10 @@ class GameApp:
 
     def _get_idle_frames(self, character_id: str) -> list[pygame.Surface]:
         return self.char_select_frames.get(character_id, [])
+
+    def _rebuild_countdown_overlay(self) -> None:
+        self.countdown_overlay = pygame.Surface((self.SCREEN_W, self.SCREEN_H), pygame.SRCALPHA)
+        self.countdown_overlay.fill((0, 0, 0, 80))
 
     def read_input_p1(self, inp: InputState, events: list[pygame.event.Event]) -> None:
         inp.reset_frame_events()
@@ -146,6 +154,15 @@ class GameApp:
                 pygame.quit()
                 sys.exit()
 
+            if event.type == pygame.VIDEORESIZE:
+                self.SCREEN_W, self.SCREEN_H = event.w, event.h
+                self.screen = pygame.display.set_mode((self.SCREEN_W, self.SCREEN_H), pygame.RESIZABLE)
+                self._rebuild_countdown_overlay()
+
+                if self.match is not None:
+                    self.match.camera.screen_w = self.SCREEN_W
+                    self.match.camera.screen_h = self.SCREEN_H
+
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 sys.exit()
@@ -156,10 +173,15 @@ class GameApp:
                 continue
 
             if event.key == pygame.K_1:
+                self.vs_mode_type = "local"
                 self.reset_to_character_select()
                 self.scene = "character_select"
             elif event.key == pygame.K_2:
                 self.start_training_match()
+            elif event.key == pygame.K_3:
+                self.vs_mode_type = "real"
+                self.reset_to_character_select()
+                self.scene = "character_select"
 
     def start_training_match(self) -> None:
         self.match = TrainingMatch(self.SCREEN_W, self.SCREEN_H)
@@ -168,14 +190,18 @@ class GameApp:
     def draw_mode_select(self) -> None:
         self.screen.fill((18, 18, 28))
 
-        title = self.big_font.render("SELECT MODE", True, (240, 240, 240))
-        multi = self.big_font.render("1. MULTI", True, (255, 180, 120))
+        title = self.big_font.render("BROHALLA", True, (245, 245, 245))
+        subtitle = self.mid_font.render("SELECT MODE", True, (200, 200, 210))
+        multi = self.big_font.render("1. DEBUG VS", True, (255, 180, 120))
         training = self.big_font.render("2. TRAINING", True, (120, 200, 255))
+        versus = self.big_font.render("3. BRAWL", True, (150, 255, 170))
         guide = self.font.render("ESC: 종료", True, (180, 180, 180))
 
-        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 120))
-        self.screen.blit(multi, (self.SCREEN_W // 2 - multi.get_width() // 2, 260))
-        self.screen.blit(training, (self.SCREEN_W // 2 - training.get_width() // 2, 330))
+        self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 105))
+        self.screen.blit(subtitle, (self.SCREEN_W // 2 - subtitle.get_width() // 2, 150))
+        self.screen.blit(multi, (self.SCREEN_W // 2 - multi.get_width() // 2, 255))
+        self.screen.blit(training, (self.SCREEN_W // 2 - training.get_width() // 2, 325))
+        self.screen.blit(versus, (self.SCREEN_W // 2 - versus.get_width() // 2, 395))
         self.screen.blit(guide, (20, self.SCREEN_H - 30))
 
         pygame.display.flip()
@@ -204,7 +230,10 @@ class GameApp:
                     self.p2_locked = True
 
         if self.p1_locked and self.p2_locked:
-            self.start_local_vs_match()
+            if self.vs_mode_type == "real":
+                self.start_real_vs_match()
+            else:
+                self.start_local_vs_match()
 
     def _draw_large_podium_preview(
         self,
@@ -219,7 +248,6 @@ class GameApp:
         podium_w = 330
         podium_h = 520
 
-        # 화면 아래로 내림
         preview_bottom_anchor = self.SCREEN_H + 180
         podium_x = center_x - podium_w // 2
         podium_y = preview_bottom_anchor - podium_h
@@ -316,7 +344,13 @@ class GameApp:
         if not self.match_countdown_active:
             return None
 
+        opening_text = getattr(self.match, "opening_text", None)
         t = self.match_countdown_timer
+
+        if opening_text == "BRAWL!":
+            if t < 1.2:
+                return "BRAWL!"
+            return None
 
         if t < 1.0:
             return "3"
@@ -325,7 +359,7 @@ class GameApp:
         elif t < 3.0:
             return "1"
         elif t < 4.0:
-            return "GO!"
+            return "BRAWL!"
         return None
 
     def draw_match_countdown_overlay(self) -> None:
@@ -333,10 +367,21 @@ class GameApp:
         if text is None:
             return
 
-        # 반투명 어둡게
-        overlay = pygame.Surface((self.SCREEN_W, self.SCREEN_H), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 90))
-        self.screen.blit(overlay, (0, 0))
+        if self.countdown_overlay is not None:
+            self.screen.blit(self.countdown_overlay, (0, 0))
+
+        if text == "BRAWL!":
+            color = (255, 200, 80)
+            shadow_color = (40, 20, 10)
+            surf = self.countdown_font.render(text, True, color)
+            shadow = self.countdown_font.render(text, True, shadow_color)
+
+            x = self.SCREEN_W // 2 - surf.get_width() // 2
+            y = self.SCREEN_H // 2 - surf.get_height() // 2
+
+            self.screen.blit(shadow, (x + 4, y + 4))
+            self.screen.blit(surf, (x, y))
+            return
 
         color = (255, 240, 120) if text != "GO!" else (120, 255, 140)
         surf = self.big_font.render(text, True, color)
@@ -357,8 +402,34 @@ class GameApp:
         self.scene = "match"
         self.match_countdown_active = True
         self.match_countdown_timer = 0.0
+        self.match_countdown_duration = 4.0
 
-        # 카메라를 즉시 맵 중앙으로 세팅
+        self.match.camera.zoom = 1.55
+        self.match.camera.target_zoom = 1.55
+
+        center_x = self.match.stage.world_w / 2
+        center_y = self.match.stage.world_h / 2
+
+        visible_w = self.SCREEN_W / self.match.camera.zoom
+        visible_h = self.SCREEN_H / self.match.camera.zoom
+
+        self.match.camera.x = center_x - visible_w / 2
+        self.match.camera.y = (center_y - 40) - visible_h / 2
+        self.match.camera.clamp_to_world()
+
+    def start_real_vs_match(self) -> None:
+        p1_char = self.CHAR_OPTIONS[self.p1_choice_index]
+        p2_char = self.CHAR_OPTIONS[self.p2_choice_index]
+
+        self.match = RealVsMatch(self.SCREEN_W, self.SCREEN_H, p1_char, p2_char)
+        self.scene = "match"
+        self.match_countdown_active = True
+        self.match_countdown_timer = 0.0
+        self.match_countdown_duration = 4.0
+
+        self.match.camera.zoom = 1.55
+        self.match.camera.target_zoom = 1.55
+
         center_x = self.match.stage.world_w / 2
         center_y = self.match.stage.world_h / 2
 
@@ -376,6 +447,9 @@ class GameApp:
         self.p1_locked = False
         self.p2_locked = False
         self.char_select_anim_time = 0.0
+        self.match_countdown_active = False
+        self.match_countdown_timer = 0.0
+        self.match_countdown_duration = 4.0
 
     def draw_character_select(self) -> None:
         self.screen.fill((18, 18, 28))
@@ -384,14 +458,17 @@ class GameApp:
         title = self.big_font.render("CHARACTER SELECT", True, (240, 240, 240))
         self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, 28))
 
-        guide1 = self.font.render("P1: A / D 이동   J 확정", True, (120, 200, 255))
-        guide2 = self.font.render("P2: ← / → 이동   K 확정", True, (255, 180, 120))
+        guide1 = self.font.render("P1: A / D Move   J Confirm", True, (120, 200, 255))
+        guide2 = self.font.render("P2: ← / → Move   K Confirm", True, (255, 180, 120))
         self.screen.blit(guide1, (40, 72))
         self.screen.blit(guide2, (40, 95))
 
+        mode_text = "MODE: BRAWL" if self.vs_mode_type == "real" else "MODE: DEBUG VS"
+        mode_surf = self.font.render(mode_text, True, (180, 255, 180) if self.vs_mode_type == "real" else (255, 200, 140))
+        self.screen.blit(mode_surf, (40, 118))
+
         self._draw_character_cards(self.screen)
 
-        # 핵심: 미리보기는 hover가 아니라 현재 선택 인덱스
         preview_p1_idx = self.p1_choice_index
         preview_p2_idx = self.p2_choice_index
 
@@ -434,7 +511,7 @@ class GameApp:
             if event.type != pygame.KEYDOWN:
                 continue
 
-            if event.key == pygame.K_F1:
+            if event.key == pygame.K_F1 and getattr(self.match, "allow_debug_toggle", True):
                 self.match.show_hud = not self.match.show_hud
 
             if event.key == pygame.K_r:
@@ -449,11 +526,18 @@ class GameApp:
         if self.match_countdown_active:
             self.update_match_countdown(dt)
 
-            # countdown 동안 카메라를 맵 중앙으로 유지
             center_x = self.match.stage.world_w / 2
             center_y = self.match.stage.world_h / 2
-            self.match.camera.update(center_x, center_y)
 
+            self.match.camera.zoom = 1.55
+            self.match.camera.target_zoom = 1.55
+
+            visible_w = self.SCREEN_W / self.match.camera.zoom
+            visible_h = self.SCREEN_H / self.match.camera.zoom
+
+            self.match.camera.x = center_x - visible_w / 2
+            self.match.camera.y = (center_y - 40) - visible_h / 2
+            self.match.camera.clamp_to_world()
             return
 
         self.read_input_p1(self.match.player1.input, events)
@@ -516,7 +600,7 @@ class GameApp:
             winner_text = "MATCH END"
 
         title = self.big_font.render(winner_text, True, (255, 240, 120))
-        info = self.font.render("R: 모드 선택 화면으로 돌아가기", True, (220, 220, 220))
+        info = self.font.render("R: Return To Menu", True, (220, 220, 220))
 
         self.screen.blit(title, (self.SCREEN_W // 2 - title.get_width() // 2, self.SCREEN_H // 2 - 40))
         self.screen.blit(info, (self.SCREEN_W // 2 - info.get_width() // 2, self.SCREEN_H // 2 + 10))
@@ -555,6 +639,7 @@ class GameApp:
                 self.update_training(dt, events)
                 if self.match is not None:
                     self.match.draw(self.screen, dt, self.font, draw_debug_hud)
+                    pygame.display.flip()
 
             elif self.scene == "result":
                 self.handle_result_events(events)

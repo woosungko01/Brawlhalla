@@ -51,6 +51,12 @@ class LocalVsMatch:
         self.stage = build_test_stage()
         self.camera = Camera(screen_w, screen_h, self.stage.world_w, self.stage.world_h)
         self.show_hud = True
+        self.show_hitboxes = True
+        self.show_fighter_labels = True
+        self.minimal_ui = False
+        self.opening_text = None
+        self.allow_debug_toggle = True
+
         self.renderer = MatchRenderer()
 
         self.characters = {
@@ -83,10 +89,10 @@ class LocalVsMatch:
         self.winner: PlayerFighter | None = None
         self.is_match_over = False
 
-        self.ko_left_x = -220
-        self.ko_right_x = self.stage.world_w + 220
-        self.ko_top_y = -220
-        self.ko_bottom_y = self.stage.world_h + 220
+        self.ko_left_x = 60
+        self.ko_right_x = self.stage.world_w - 60
+        self.ko_top_y = 0
+        self.ko_bottom_y = self.stage.world_h
 
         self.ko_banner_text: str | None = None
         self.ko_banner_timer = 0.0
@@ -117,7 +123,6 @@ class LocalVsMatch:
             fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
 
     def update_trail_effects(self, fighter, dt: float) -> None:
-        # trail 수명 감소
         alive: list[TrailEffect] = []
         for fx in fighter.trail_effects:
             fx.lifetime -= dt
@@ -125,17 +130,12 @@ class LocalVsMatch:
                 alive.append(fx)
         fighter.trail_effects = alive
 
-        # 생성 조건
-        if fighter.damage.percent < 120.0:
-            fighter.trail_spawn_timer = 0.0
-            return
-
         if fighter.hitstun_timer <= 0.0:
             fighter.trail_spawn_timer = 0.0
             return
 
         speed_sq = fighter.vel.x * fighter.vel.x + fighter.vel.y * fighter.vel.y
-        if speed_sq < 220.0 * 220.0:
+        if speed_sq < 180.0 * 180.0:
             fighter.trail_spawn_timer = 0.0
             return
 
@@ -143,22 +143,17 @@ class LocalVsMatch:
         if fighter.trail_spawn_timer > 0.0:
             return
 
-        scale = 0.70
-        if fighter.damage.percent >= 180:
-            scale = 0.92
-        elif fighter.damage.percent >= 150:
-            scale = 0.82
-
         fighter.trail_effects.append(
             TrailEffect(
-                x=fighter.pos.x - fighter.vel.x * 0.012,
-                y=fighter.pos.y - fighter.vel.y * 0.012,
-                lifetime=0.055,
-                max_lifetime=0.055,
-                scale=scale,
+                x=fighter.pos.x,
+                y=fighter.pos.y,
+                lifetime=0.30,
+                max_lifetime=0.30,
+                scale=0.60,
             )
         )
-        fighter.trail_spawn_timer = 0.018
+
+        fighter.trail_spawn_timer = 0.035
 
     def update_fighter(self, fighter, targets: list, dt: float) -> None:
         fighter.was_grounded = fighter.is_grounded
@@ -258,7 +253,7 @@ class LocalVsMatch:
         if best_platform is None:
             return self.stage.player_spawn_x, self.stage.player_spawn_y
 
-        px = best_platform.x + platform.width * 0.5
+        px = best_platform.x + best_platform.width * 0.5
         py = best_platform.y - (fighter_height * 0.5) - 8
         return px, py
 
@@ -335,8 +330,6 @@ class LocalVsMatch:
         if self.camera_shake_timer > 0.0:
             self.camera_shake_timer = max(0.0, self.camera_shake_timer - dt)
 
-        max_percent = max(self.player1.damage.percent, self.player2.damage.percent)
-        self.camera.set_target_zoom_from_damage(max_percent)
         self.camera.set_dual_target(
             self.player1.pos.x, self.player1.pos.y,
             self.player2.pos.x, self.player2.pos.y,
