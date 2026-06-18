@@ -10,6 +10,7 @@ from config.player_config import (
     PlayerConfig, MovementConfig, JumpConfig,
     GravityConfig, DashConfig, DodgeConfig,
 )
+from effects.trail_effect import TrailEffect
 
 
 class Fighter(Entity):
@@ -100,6 +101,10 @@ class Fighter(Entity):
 
         self.hit_freeze_timer = 0.0
 
+        # knockback trail
+        self.trail_effects: list[TrailEffect] = []
+        self.trail_spawn_timer = 0.0
+
     def start_attack(self, attack_data) -> None:
         self.is_attacking = True
         self.current_attack = attack_data
@@ -156,6 +161,9 @@ class Fighter(Entity):
         self.fast_falling = False
         self.fast_fall_lock_timer = 0.0
 
+        self.trail_effects.clear()
+        self.trail_spawn_timer = 0.0
+
     def respawn_at(self, x: float, y: float, invuln_time: float = 3.0) -> None:
         self.pos.x = x
         self.pos.y = y
@@ -179,4 +187,6 @@ class Fighter(Entity):
         self.left_ground_since_dash = True
 
         self.hit_freeze_timer = 0.0
+        self.trail_effects.clear()
+        self.trail_spawn_timer = 0.0
         self.reset_combat_state()

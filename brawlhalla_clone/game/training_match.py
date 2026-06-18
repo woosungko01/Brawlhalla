@@ -13,6 +13,7 @@ from characters.swordsman import SwordsmanCharacter
 from characters.gunner import GunnerCharacter
 
 from combat.followup_buffer import FollowupAction
+from effects.trail_effect import TrailEffect
 
 from systems.movement import apply_horizontal_control
 from systems.jump import try_request_jump, execute_pending_jump
@@ -122,6 +123,48 @@ class TrainingMatch:
         if fighter.invuln_timer > 0.0:
             fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
 
+    def update_trail_effects(self, fighter, dt: float) -> None:
+        alive: list[TrailEffect] = []
+        for fx in fighter.trail_effects:
+            fx.lifetime -= dt
+            if fx.lifetime > 0.0:
+                alive.append(fx)
+        fighter.trail_effects = alive
+
+        if fighter.damage.percent < 120.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        if fighter.hitstun_timer <= 0.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        speed_sq = fighter.vel.x * fighter.vel.x + fighter.vel.y * fighter.vel.y
+        if speed_sq < 220.0 * 220.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        fighter.trail_spawn_timer -= dt
+        if fighter.trail_spawn_timer > 0.0:
+            return
+
+        scale = 0.70
+        if fighter.damage.percent >= 180:
+            scale = 0.92
+        elif fighter.damage.percent >= 150:
+            scale = 0.82
+
+        fighter.trail_effects.append(
+            TrailEffect(
+                x=fighter.pos.x - fighter.vel.x * 0.012,
+                y=fighter.pos.y - fighter.vel.y * 0.012,
+                lifetime=0.055,
+                max_lifetime=0.055,
+                scale=scale,
+            )
+        )
+        fighter.trail_spawn_timer = 0.018
+
     def _store_followup_if_possible(self, fighter, action: FollowupAction) -> None:
         if not fighter.is_attacking:
             return
@@ -184,12 +227,14 @@ class TrainingMatch:
         if fighter.hit_freeze_timer > 0.0:
             fighter.vel.x = 0.0
             fighter.vel.y = 0.0
+            self.update_trail_effects(fighter, dt)
             update_move_state(fighter)
             return
 
         if fighter.stun_timer > 0.0:
             fighter.vel.x = 0.0
             fighter.vel.y = 0.0
+            self.update_trail_effects(fighter, dt)
             update_move_state(fighter)
             return
 
@@ -278,6 +323,7 @@ class TrainingMatch:
 
         handle_landing(fighter)
         update_move_state(fighter)
+        self.update_trail_effects(fighter, dt)
 
     def respawn_dummy_if_needed(self) -> None:
         if self.dummy.pos.y <= self.ko_bottom_y:
@@ -300,12 +346,14 @@ class TrainingMatch:
         if d.hit_freeze_timer > 0.0:
             d.vel.x = 0.0
             d.vel.y = 0.0
+            self.update_trail_effects(d, dt)
             update_move_state(d)
             return
 
         if d.stun_timer > 0.0:
             d.vel.x = 0.0
             d.vel.y = 0.0
+            self.update_trail_effects(d, dt)
             update_move_state(d)
             return
 
@@ -343,6 +391,7 @@ class TrainingMatch:
         handle_wall_touch(d)
         handle_landing(d)
         update_move_state(d)
+        self.update_trail_effects(d, dt)
 
     def update(self, dt: float) -> None:
         self.update_fighter(self.player, [self.dummy], dt)

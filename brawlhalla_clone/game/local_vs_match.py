@@ -13,6 +13,8 @@ from characters.brawler import BrawlerCharacter
 from characters.swordsman import SwordsmanCharacter
 from characters.gunner import GunnerCharacter
 
+from effects.trail_effect import TrailEffect
+
 from systems.movement import apply_horizontal_control
 from systems.jump import try_request_jump, execute_pending_jump
 from systems.gravity import apply_vertical_forces
@@ -81,13 +83,11 @@ class LocalVsMatch:
         self.winner: PlayerFighter | None = None
         self.is_match_over = False
 
-        # 4방향 KO 경계
         self.ko_left_x = -220
         self.ko_right_x = self.stage.world_w + 220
         self.ko_top_y = -220
         self.ko_bottom_y = self.stage.world_h + 220
 
-        # KO 연출 상태
         self.ko_banner_text: str | None = None
         self.ko_banner_timer = 0.0
 
@@ -116,6 +116,50 @@ class LocalVsMatch:
         if fighter.invuln_timer > 0.0:
             fighter.invuln_timer = max(0.0, fighter.invuln_timer - dt)
 
+    def update_trail_effects(self, fighter, dt: float) -> None:
+        # trail 수명 감소
+        alive: list[TrailEffect] = []
+        for fx in fighter.trail_effects:
+            fx.lifetime -= dt
+            if fx.lifetime > 0.0:
+                alive.append(fx)
+        fighter.trail_effects = alive
+
+        # 생성 조건
+        if fighter.damage.percent < 120.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        if fighter.hitstun_timer <= 0.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        speed_sq = fighter.vel.x * fighter.vel.x + fighter.vel.y * fighter.vel.y
+        if speed_sq < 220.0 * 220.0:
+            fighter.trail_spawn_timer = 0.0
+            return
+
+        fighter.trail_spawn_timer -= dt
+        if fighter.trail_spawn_timer > 0.0:
+            return
+
+        scale = 0.70
+        if fighter.damage.percent >= 180:
+            scale = 0.92
+        elif fighter.damage.percent >= 150:
+            scale = 0.82
+
+        fighter.trail_effects.append(
+            TrailEffect(
+                x=fighter.pos.x - fighter.vel.x * 0.012,
+                y=fighter.pos.y - fighter.vel.y * 0.012,
+                lifetime=0.055,
+                max_lifetime=0.055,
+                scale=scale,
+            )
+        )
+        fighter.trail_spawn_timer = 0.018
+
     def update_fighter(self, fighter, targets: list, dt: float) -> None:
         fighter.was_grounded = fighter.is_grounded
 
@@ -132,6 +176,7 @@ class LocalVsMatch:
         if fighter.hit_freeze_timer > 0.0:
             fighter.vel.x = 0.0
             fighter.vel.y = 0.0
+            self.update_trail_effects(fighter, dt)
             update_move_state(fighter)
             return
 
@@ -196,6 +241,7 @@ class LocalVsMatch:
 
         handle_landing(fighter)
         update_move_state(fighter)
+        self.update_trail_effects(fighter, dt)
 
     def find_respawn_point(self, fallen_x: float, fighter_height: int) -> tuple[float, float]:
         best_platform = None
@@ -212,7 +258,7 @@ class LocalVsMatch:
         if best_platform is None:
             return self.stage.player_spawn_x, self.stage.player_spawn_y
 
-        px = best_platform.x + best_platform.width * 0.5
+        px = best_platform.x + platform.width * 0.5
         py = best_platform.y - (fighter_height * 0.5) - 8
         return px, py
 
