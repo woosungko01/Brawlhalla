@@ -47,6 +47,7 @@ from rendering.match_renderer import MatchRenderer
 
 
 class TrainingMatch:
+    #dummy로 스킬 / 공격 시험하는 구조
     def __init__(self, screen_w: int, screen_h: int) -> None:
         self.stage = build_test_stage()
         self.camera = Camera(screen_w, screen_h, self.stage.world_w, self.stage.world_h)

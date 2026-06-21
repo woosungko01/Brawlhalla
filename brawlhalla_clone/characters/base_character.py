@@ -8,6 +8,7 @@ from combat.knockback import HitEffect
 
 
 class BaseCharacter(ABC):
+    #캐릭터의 공통적인 특성 정리
     character_id: str = "base"
 
     def resolve_basic_attack(self, fighter) -> AttackData | None:

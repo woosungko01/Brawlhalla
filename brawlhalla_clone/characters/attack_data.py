@@ -8,6 +8,7 @@ from combat.knockback import KnockbackModel
 
 @dataclass
 class AttackData:
+    #공격/스킬 처리 시 필요한 정보 기본 설정
     name: str
     total_time: float
     active_windows: list[tuple[float, float]]

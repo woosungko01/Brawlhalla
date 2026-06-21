@@ -6,6 +6,7 @@ from rendering.fighter_renderer import FighterRenderer
 
 
 class CleanMatchRenderer:
+    #게임 UI, 캐릭터 및 여러 효과 표현 - 게임의 전체적인 화면 구성
     BG_COLOR = (30, 30, 45)
 
     PLAYER1_COLOR = (100, 180, 255)

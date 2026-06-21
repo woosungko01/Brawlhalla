@@ -1,4 +1,5 @@
 class Camera:
+    #현재 전투 상황에 따라 게임 화면이 어디를 얼만큼 zoom해야 하는지 제어
     def __init__(self, screen_w: int, screen_h: int,
                  world_w: int, world_h: int) -> None:
         self.x: float = 0.0

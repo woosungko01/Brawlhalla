@@ -5,12 +5,12 @@ from systems.collision import Platform
 def build_test_stage() -> Stage:
     """
     새 배경 스테이지.
-    네가 표시한 초록 경계를 기준으로 플랫폼을 수동 배치한다.
+    초록 경계를 기준으로 플랫폼을 수동 배치한다.
 
     원본 배경 이미지 기준 해상도:
     1920 x 1080
 
-    월드도 같은 크기로 맞춘다.
+    월드도 같은 크기로 맞춤.
     """
     world_w = 1920
     world_h = 1080

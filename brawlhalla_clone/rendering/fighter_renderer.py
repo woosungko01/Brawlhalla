@@ -6,6 +6,7 @@ from rendering.animation import AnimationClip, AnimationPlayer
 
 
 class FighterRenderer:
+    #캐릭터의 애니메이션 및 외관 구현
     FRAME_W = 128
     FRAME_H = 128
 

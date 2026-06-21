@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class DamageState:
+    #입은 데미지 처리
     percent: float = 0.0
 
     def add_damage(self, amount: float) -> None:

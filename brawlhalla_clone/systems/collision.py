@@ -11,6 +11,7 @@ from entities.fighter import Fighter
 
 @dataclass
 class Platform:
+    #플랫폼 구조 구현
     x: float
     y: float
     width: float
@@ -29,6 +30,7 @@ class Platform:
 
 @dataclass
 class CollisionResult:
+    #충돌 판정
     on_ground: bool = False
     hit_ceiling: bool = False
     hit_left_wall: bool = False

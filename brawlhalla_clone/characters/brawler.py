@@ -17,7 +17,7 @@ def _facing_rect(center_x: float, top_y: float, width: float, height: float, fac
 
 class BrawlerCharacter(BaseCharacter):
     character_id = "brawler"
-
+    #brawler(근접 전투 캐릭터)에 대한 설정(공격 종류, 밀치기 정도 등)
     def get_attack_for_slot(self, slot: AttackSlot) -> AttackData | None:
         if slot == AttackSlot.NEUTRAL:
             return self._neutral()

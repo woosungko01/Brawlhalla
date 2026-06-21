@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 @dataclass
 class AnimationClip:
+    #애니메이션 분류 및 특성 부여
     name: str
     frame_count: int
     frame_time: float
@@ -13,6 +14,7 @@ class AnimationClip:
 
 
 class AnimationPlayer:
+    #애니메이션 진행 과정 - 처리
     def __init__(self) -> None:
         self.current: AnimationClip | None = None
         self.current_name: str | None = None

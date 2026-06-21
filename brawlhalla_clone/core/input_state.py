@@ -1,6 +1,7 @@
 # core/input_state.py
 
 class InputState:
+    #입력된 정보 인식
     __slots__ = (
         "left", "right", "up", "down",
         "jump", "jump_pressed", "jump_released",

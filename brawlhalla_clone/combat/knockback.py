@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 
 @dataclass
 class HitEffect:
+    #피격 시 효과 기본 설정
     damage: float
     vx: float
     vy: float
@@ -16,12 +17,14 @@ class HitEffect:
 
 
 class KnockbackModel(ABC):
+    #밀쳐질 때 효과에 대한 부모 클래스
     @abstractmethod
     def build_effect(self, attacker, target) -> HitEffect:
         raise NotImplementedError
 
 
 class FixedKnockback(KnockbackModel):
+    #기본 knockback 효과
     def __init__(
         self,
         damage: float,
@@ -50,6 +53,7 @@ class FixedKnockback(KnockbackModel):
 
 
 class ScalingKnockback(KnockbackModel):
+    #입은 데미지에 따른 추가적인 knockback 효과
     def __init__(
         self,
         damage: float,

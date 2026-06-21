@@ -14,6 +14,7 @@ from effects.trail_effect import TrailEffect
 
 
 class Fighter(Entity):
+    #캐릭터의 상태, 움직임 및 공격 제어
     def __init__(self, x: float, y: float, character) -> None:
         cfg = PlayerConfig()
         super().__init__(x, y, cfg.WIDTH, cfg.HEIGHT)

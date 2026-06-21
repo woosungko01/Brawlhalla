@@ -7,6 +7,7 @@ from rendering.fighter_renderer import FighterRenderer
 
 
 class MatchRenderer:
+    #게임 중 UI 화면 구성
     BG_COLOR = (30, 30, 45)
     HARD_PLATFORM_COLOR = (80, 200, 120)
     HARD_PLATFORM_BORDER = (60, 160, 90)

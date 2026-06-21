@@ -4,6 +4,7 @@ from core.vec2 import Vec2
 
 
 class Entity:
+    #엔티티의 크기, 위치 표현
     def __init__(self, x: float, y: float, width: int, height: int) -> None:
         self.pos = Vec2(x, y)
         self.vel = Vec2(0.0, 0.0)

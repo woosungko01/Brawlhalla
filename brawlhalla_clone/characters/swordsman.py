@@ -16,6 +16,7 @@ def _facing_rect(center_x: float, top_y: float, width: float, height: float, fac
 
 
 class SwordsmanCharacter(BaseCharacter):
+    #swordsman에 대한 설정
     character_id = "swordsman"
 
     def get_attack_for_slot(self, slot: AttackSlot) -> AttackData | None:
