@@ -11,6 +11,7 @@ from rendering.fighter_renderer import FighterRenderer
 
 
 class GameApp:
+    # 기본적인 게임 구조
     FPS = 60
     TITLE = "BROHALLA"
 
@@ -648,6 +649,9 @@ class GameApp:
             if event.type != pygame.KEYDOWN:
                 continue
 
+            if event.key == pygame.K_BACKQUOTE:
+                self.return_to_menu()
+
             if event.key == pygame.K_F1 and getattr(self.match, "allow_debug_toggle", True):
                 self.match.show_hud = not self.match.show_hud
 
@@ -655,6 +659,11 @@ class GameApp:
                 self.scene = "mode_select"
                 self.match = None
                 self.reset_to_character_select()
+
+    def return_to_menu(self) -> None:
+        self.scene = "mode_select"
+        self.match = None
+        self.reset_to_character_select()
 
     def update_match(self, dt: float, events: list[pygame.event.Event]) -> None:
         if self.match is None:
@@ -692,6 +701,9 @@ class GameApp:
         for event in events:
             if event.type != pygame.KEYDOWN:
                 continue
+
+            if event.key == pygame.K_BACKQUOTE:
+                self.return_to_menu()
 
             if event.key == pygame.K_F1:
                 self.match.show_hud = not self.match.show_hud
