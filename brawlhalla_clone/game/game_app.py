@@ -11,6 +11,7 @@ from rendering.fighter_renderer import FighterRenderer
 
 
 class GameApp:
+    # 기본적인 게임 구조
     FPS = 60
     TITLE = "BROHALLA"
 
